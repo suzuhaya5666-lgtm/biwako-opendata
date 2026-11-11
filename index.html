@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>琵琶湖観測データ</title>
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-512.png">
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f6f8fa;--card:#fff;--tx:#1b2733;--sub:#6b7a88;--ln:#dbe3ea;--ac:#1f6feb;--big:#fde2e0;--hl:#fff1b8;--mid:#e3f0ff;--sml:#f0f0f0}
+@media (prefers-color-scheme:dark){:root{--bg:#0f161d;--card:#18222c;--tx:#e6edf3;--sub:#8b9bab;--ln:#2a3846;--ac:#58a6ff;--big:#4a2226;--hl:#4b3f10;--mid:#1c3350;--sml:#222c36}}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{overflow-x:hidden;margin:0;background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;line-height:1.5}
+main{max-width:760px;margin:0 auto;padding:16px}
+h1{font-size:20px;margin:0 0 12px}
+nav{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+button,select,input{font:inherit;color:var(--tx);background:var(--card);border:1px solid var(--ln);border-radius:8px;padding:8px 10px}
+button{cursor:pointer}
+nav button.on,button.pri{background:var(--ac);color:#fff;border-color:var(--ac)}
+.card{background:var(--card);border:1px solid var(--ln);border-radius:12px;padding:12px;margin-bottom:12px}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal .h{text-align:center;color:var(--sub);font-size:12px}
+.d{min-height:64px;border-radius:8px;padding:4px;font-size:12px;background:var(--sml)}
+.d b{font-size:13px}.d.大潮{background:var(--big)}.d.中潮{background:var(--mid)}.d.t{outline:2px solid var(--ac)}.d.sel{outline:3px solid #d1242f}
+.d span{display:block;color:var(--sub);font-size:11px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+.row label{display:flex;flex-direction:column;font-size:12px;color:var(--sub);flex:1;min-width:110px}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:6px;border-bottom:1px solid var(--ln);text-align:left;white-space:nowrap}
+.n{text-align:right}
+svg{width:100%;height:auto;touch-action:pan-y}
+.pl{padding:4px 10px;border-radius:16px;font-size:13px}
+#wxm svg{max-height:calc(100vh - 190px);max-height:calc(100dvh - 190px);touch-action:manipulation}
+#wxm g.pin{cursor:pointer}
+.sheet{position:fixed;left:0;right:0;bottom:0;height:50vh;display:flex;flex-direction:column;background:var(--card);border-top:1px solid var(--ln);border-radius:16px 16px 0 0;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));box-shadow:0 -4px 16px rgba(0,0,0,.18);z-index:5}
+.sheet table{font-size:13px}
+.tb{flex:1;overflow:auto;min-height:0}
+.tb th{position:sticky;top:0;background:var(--card)}
+#wxm.op{padding-bottom:50vh}
+.sheet tr.cn td{background:var(--mid)}
+.trow{border-top:1px solid var(--ln);padding:10px 0;cursor:pointer}
+tr.hl td{background:var(--hl);font-weight:600}
+.bar{display:inline-block;height:8px;background:var(--ac);border-radius:4px;vertical-align:middle;margin-left:4px}
+.note{color:var(--sub);font-size:12px}
+.bad{border-color:#d1242f}
+.warn{color:#d1242f;font-weight:600}
+.up{color:#d1242f}.dn{color:#1f6feb}
+.chip{display:inline-block;margin:2px 14px 2px 0;white-space:nowrap}
+.lbl{color:var(--sub);font-size:12px}
+textarea{width:100%;font:inherit;color:var(--tx);background:var(--card);border:1px solid var(--ln);border-radius:8px;padding:8px;margin:8px 0}
+</style>
+</head>
+<body>
+<main>
+<h1>🎣 琵琶湖観測データ</h1>
+<nav id="tabs"></nav>
+<section id="v-now"></section>
+<section id="v-cal" hidden></section>
+<section id="v-chart" hidden></section>
+<section id="v-wx" hidden></section>
+<section id="v-trip" hidden></section>
+<section id="v-nt" hidden></section>
+<section id="v-rec" hidden></section>
+<footer class="note" style="margin:16px 0 8px;line-height:1.7">
+<b>このサイトについて</b><br>
+個人が趣味で作った非公式のサイトです。表示は目安で、正確性・即時性は保証しません。釣行・出船・河川への立ち入りなど、安全に関わる判断は、気象庁・国土交通省などの最新の公式情報で行ってください。<br>
+出典: 国土交通省「川の防災情報」(水位・水温)、国土交通省「水文水質データベース」(平年値)、気象庁(警報・注意報)、<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a>(天気)。潮名は月齢からの計算値です。<br>
+アクセス状況を把握するため、個人を特定しない形でアクセス解析を使っています。
+</footer>
+</main>
+<script>
+const CSV_URLS=["https://raw.githubusercontent.com/suzuhaya5666-lgtm/Biwakodate/main/data/observations.csv","data/observations.csv"];
+const REPO="";
+const HD_URLS=[REPO+"karahashi_daily.csv","data/history/karahashi_daily.csv"],HH_URLS=[REPO+"karahashi_hourly_history.csv","data/history/karahashi_hourly_history.csv"];
+const HIST_END=new Date("2026-11-05T10:00").getTime();
+const CLIM={"r10":{"唐橋(瀬田川)":{"m":[7.95,7.55,7.3,7.06,6.87,6.82,6.88,7.02,7.31,7.56,7.96,8.27,8.83,9.44,10.06,10.79,11.39,12.26,13.09,14.02,14.73,15.38,16.25,17.08,17.97,18.58,19.31,19.95,20.78,21.54,22.11,22.53,22.96,23.41,24.01,24.63,25.18,25.59,25.99,26.58,27.38,28.2,29.17,29.82,30.08,29.65,29.27,28.93,28.6,28.11,27.59,27.15,26.42,25.6,24.81,24.03,23.11,22.11,21.09,20.09,19.01,18.05,17.23,16.51,15.79,14.98,14.11,12.76,11.84,10.91,9.89,8.98,8.26,8.01],"s":[1.05,1.19,1.19,1.14,0.92,0.91,0.91,0.74,0.71,0.74,0.87,0.85,0.83,0.97,1.16,1.39,1.43,1.36,1.34,1.17,1.13,1.12,1.19,1.02,0.92,0.91,0.88,0.78,0.91,1.15,1.22,0.91,0.73,0.73,0.58,0.58,0.96,1.17,1.32,1.42,1.54,1.58,1.24,0.8,0.71,1.03,1.4,1.42,1.23,1.14,1.3,1.71,1.76,1.6,1.35,1.15,1.2,1.26,0.98,0.89,1.01,0.97,0.89,0.86,0.72,0.98,1.28,0.94,0.78,0.53,0.64,1.03,1.2,1.07]},"雄琴沖":{"m":[9.11,8.78,8.48,8.25,7.97,7.82,7.72,7.8,7.97,8.07,8.39,8.54,8.87,9.09,9.54,10.11,10.51,11.07,11.71,12.54,13.19,13.74,14.33,14.98,15.81,16.55,17.31,17.95,18.74,19.53,20.31,21.04,21.56,22.15,22.68,23.16,23.56,24.1,24.82,25.68,26.6,27.52,28.54,29.17,29.46,29.17,28.9,28.68,28.3,27.76,27.18,26.75,26.11,25.47,24.51,23.82,23.03,22.09,21.18,20.22,19.37,18.51,17.78,17.11,16.25,15.41,14.61,13.6,12.74,11.9,11.03,10.27,9.65,9.19],"s":[0.7,0.83,0.84,0.75,0.64,0.66,0.69,0.6,0.63,0.68,0.75,0.68,0.64,0.73,0.81,0.91,0.92,0.89,0.91,0.88,0.9,0.9,0.92,0.76,0.65,0.76,0.7,0.57,0.75,0.95,0.91,0.7,0.55,0.58,0.49,0.54,0.75,0.95,1.13,1.26,1.46,1.5,1.19,0.8,0.83,1.06,1.3,1.22,1.06,1.04,1.24,1.63,1.64,1.54,1.21,1.18,1.21,1.15,0.93,0.86,0.81,0.81,0.76,0.71,0.57,0.61,0.75,0.59,0.53,0.41,0.44,0.65,0.77,0.7]},"安曇川沖":{"m":[11.67,10.98,10.4,9.98,9.63,9.3,9.0,8.77,8.6,8.51,8.48,8.45,8.43,8.41,8.4,8.42,8.66,9.13,9.74,10.43,11.12,11.76,12.38,13.04,13.73,14.43,15.14,15.83,16.5,17.17,17.84,18.52,19.22,19.95,20.73,21.54,22.39,23.24,24.09,24.9,25.78,26.77,27.78,28.68,29.36,29.72,29.69,29.47,29.11,28.66,28.16,27.66,27.18,26.68,26.13,25.54,24.91,24.24,23.54,22.74,21.87,20.96,20.05,19.18,18.38,17.62,16.9,16.19,15.5,14.81,14.11,13.37,12.59,11.82],"s":[0.79,0.77,0.76,0.75,0.73,0.71,0.7,0.69,0.68,0.67,0.68,0.72,0.76,0.82,0.89,0.97,1.12,1.32,1.53,1.73,1.86,1.91,1.89,1.84,1.79,1.74,1.71,1.7,1.7,1.7,1.7,1.71,1.71,1.71,1.7,1.67,1.63,1.58,1.53,1.48,1.43,1.37,1.3,1.25,1.2,1.17,1.17,1.17,1.17,1.17,1.17,1.17,1.19,1.35,1.62,1.93,2.2,2.37,2.39,2.25,2.02,1.75,1.47,1.26,1.14,1.07,1.01,0.96,0.91,0.88,0.85,0.83,0.81,0.79]}},"all":{"唐橋(瀬田川)":{"m":[7.64,7.24,6.97,6.77,6.6,6.53,6.5,6.59,6.82,7.05,7.47,7.86,8.42,8.89,9.31,9.89,10.47,11.27,12.02,12.92,13.76,14.62,15.46,16.26,17.14,17.98,18.7,19.28,20.0,20.79,21.52,22.1,22.67,23.21,23.78,24.41,24.97,25.46,25.97,26.6,27.31,27.97,28.67,29.27,29.55,29.45,29.2,28.91,28.54,28.08,27.64,27.16,26.47,25.59,24.67,23.73,22.85,21.93,21.05,20.07,19.12,18.23,17.43,16.56,15.53,14.47,13.56,12.49,11.58,10.59,9.58,8.73,8.06,7.71],"s":[1.03,1.07,1.08,0.98,0.84,0.86,0.94,0.94,0.95,0.93,0.96,0.96,1.0,1.02,1.13,1.31,1.35,1.43,1.5,1.47,1.42,1.4,1.49,1.44,1.4,1.17,1.04,0.92,1.12,1.26,1.33,1.23,1.05,0.97,0.9,1.02,1.23,1.31,1.46,1.51,1.59,1.6,1.38,1.04,0.92,1.04,1.26,1.28,1.27,1.23,1.28,1.45,1.46,1.3,1.11,1.04,1.05,1.06,0.87,0.8,0.83,0.82,0.83,0.85,0.78,0.92,1.12,0.9,0.94,1.11,1.29,1.46,1.34,1.06]},"雄琴沖":{"m":[8.75,8.37,8.05,7.83,7.54,7.4,7.28,7.34,7.46,7.55,7.85,8.07,8.4,8.56,8.89,9.36,9.75,10.28,10.85,11.66,12.4,13.13,13.6,14.17,14.98,15.95,16.77,17.37,18.05,18.83,19.65,20.5,21.17,21.88,22.39,22.92,23.36,23.99,24.72,25.53,26.39,27.23,28.04,28.59,28.88,28.88,28.75,28.6,28.18,27.71,27.12,26.67,26.07,25.36,24.39,23.5,22.66,21.82,20.98,20.04,19.21,18.4,17.67,16.84,15.83,14.88,14.12,13.22,12.33,11.41,10.58,9.88,9.25,8.84],"s":[0.75,0.81,0.84,0.74,0.69,0.7,0.71,0.69,0.73,0.76,0.8,0.77,0.82,0.81,0.86,0.96,0.97,1.03,1.1,1.14,1.15,1.2,1.27,1.24,1.17,1.01,0.87,0.78,0.98,1.11,1.19,1.1,0.92,0.85,0.82,0.84,0.85,0.95,1.15,1.25,1.43,1.48,1.3,0.99,0.95,1.02,1.12,1.1,1.12,1.12,1.17,1.31,1.29,1.2,1.0,1.01,1.01,0.96,0.79,0.73,0.66,0.66,0.66,0.71,0.68,0.71,0.79,0.69,0.79,0.98,1.03,1.1,0.97,0.77]},"安曇川沖":{"m":[11.36,10.67,10.09,9.67,9.32,9.0,8.71,8.48,8.3,8.2,8.14,8.08,8.04,8.01,7.99,8.0,8.17,8.5,8.94,9.45,10.0,10.53,11.14,11.85,12.63,13.45,14.25,15.01,15.74,16.47,17.19,17.91,18.65,19.41,20.2,21.01,21.84,22.67,23.49,24.28,25.11,26.05,27.0,27.84,28.48,28.81,28.8,28.65,28.41,28.09,27.72,27.33,26.93,26.41,25.79,25.09,24.35,23.6,22.87,22.08,21.25,20.39,19.55,18.72,17.95,17.22,16.51,15.82,15.14,14.46,13.78,13.04,12.27,11.5],"s":[0.84,0.84,0.84,0.84,0.83,0.79,0.75,0.72,0.69,0.67,0.68,0.7,0.72,0.76,0.8,0.86,1.01,1.25,1.52,1.76,1.94,1.99,1.96,1.9,1.82,1.75,1.69,1.67,1.67,1.67,1.66,1.66,1.66,1.66,1.65,1.64,1.63,1.61,1.59,1.57,1.53,1.48,1.43,1.37,1.33,1.3,1.31,1.33,1.36,1.41,1.46,1.51,1.56,1.62,1.69,1.77,1.83,1.86,1.86,1.75,1.58,1.38,1.18,1.03,0.96,0.93,0.9,0.87,0.86,0.85,0.84,0.84,0.84,0.84]}}};
+const BASES={r10:"直近10年(2015〜2024)",all:"全期間(2003〜2024)"};
+/* 水位の平年(鳥居川 日データ 1991〜2025/6 から作成。m, 5日間隔74点) */
+const LCLIM={"r10":{"m":[-0.38,-0.348,-0.33,-0.322,-0.308,-0.289,-0.271,-0.258,-0.25,-0.238,-0.224,-0.219,-0.209,-0.192,-0.157,-0.121,-0.088,-0.064,-0.048,-0.026,-0.003,0.017,0.021,0.022,0.015,0.006,-0.003,-0.01,-0.03,-0.061,-0.107,-0.155,-0.216,-0.26,-0.286,-0.288,-0.282,-0.252,-0.232,-0.247,-0.291,-0.314,-0.321,-0.324,-0.348,-0.343,-0.355,-0.375,-0.409,-0.414,-0.414,-0.408,-0.409,-0.401,-0.414,-0.42,-0.423,-0.415,-0.401,-0.381,-0.373,-0.378,-0.401,-0.418,-0.435,-0.45,-0.464,-0.48,-0.488,-0.489,-0.482,-0.464,-0.432,-0.388],"s":[0.193,0.216,0.231,0.227,0.217,0.206,0.195,0.185,0.175,0.164,0.151,0.135,0.116,0.097,0.082,0.073,0.06,0.05,0.052,0.058,0.061,0.054,0.048,0.042,0.04,0.043,0.043,0.046,0.044,0.047,0.045,0.031,0.028,0.013,0.019,0.023,0.033,0.095,0.125,0.118,0.071,0.058,0.049,0.053,0.05,0.061,0.081,0.076,0.046,0.042,0.057,0.049,0.043,0.041,0.05,0.055,0.06,0.076,0.119,0.185,0.233,0.248,0.232,0.223,0.215,0.215,0.215,0.209,0.201,0.197,0.198,0.207,0.202,0.191]},"all":{"m":[-0.416,-0.389,-0.366,-0.345,-0.325,-0.305,-0.284,-0.267,-0.25,-0.231,-0.207,-0.192,-0.17,-0.143,-0.105,-0.074,-0.044,-0.015,0.012,0.038,0.057,0.068,0.067,0.064,0.06,0.059,0.06,0.051,0.025,-0.013,-0.057,-0.107,-0.168,-0.219,-0.247,-0.257,-0.251,-0.242,-0.231,-0.238,-0.255,-0.275,-0.293,-0.314,-0.339,-0.35,-0.366,-0.39,-0.419,-0.435,-0.438,-0.428,-0.421,-0.422,-0.436,-0.44,-0.431,-0.419,-0.409,-0.399,-0.397,-0.401,-0.417,-0.431,-0.446,-0.458,-0.469,-0.478,-0.482,-0.483,-0.479,-0.469,-0.448,-0.421],"s":[0.207,0.236,0.253,0.24,0.223,0.207,0.197,0.195,0.193,0.189,0.186,0.183,0.178,0.168,0.149,0.125,0.107,0.1,0.104,0.102,0.096,0.09,0.09,0.09,0.093,0.096,0.109,0.118,0.113,0.09,0.068,0.057,0.068,0.071,0.066,0.062,0.072,0.099,0.116,0.117,0.116,0.117,0.114,0.118,0.129,0.145,0.157,0.162,0.164,0.174,0.182,0.181,0.176,0.168,0.145,0.135,0.134,0.148,0.173,0.211,0.241,0.257,0.255,0.25,0.244,0.241,0.242,0.245,0.248,0.25,0.253,0.256,0.234,0.207]}};
+function lclimAt(ts,bb){const b=bb||view.base,c=LCLIM[b==="off"?"r10":b];if(!c)return null;const d=new Date(ts),i=(Date.UTC(2000,d.getMonth(),d.getDate())-Date.UTC(2000,0,1))/864e5,g=Math.min(i/5,72.999),k=Math.floor(g),f=g-k;return{m:c.m[k]*(1-f)+c.m[k+1]*f,s:c.s[k]*(1-f)+c.s[k+1]*f}}
+const climM=(m,p,ts,bb)=>m==="level"?lclimAt(ts,bb):climAt(p,ts,bb);
+const SYN=29.530588853,$=s=>document.querySelector(s);
+const MOONS=["🌑","🌒","🌓","🌔","🌕","🌖","🌗","🌘"];
+const LAB={temp:"水温(℃)",level:"水位(m)"};
+const COL=["#1f6feb","#d1242f","#1a7f37","#9a6700","#8250df","#0a7ea4"];
+const TABS=[["wx","マップ"],["now","現在"],["chart","グラフ"],["cal","カレンダー"],["nt","お知らせ"]];
+const pad=n=>String(n).padStart(2,"0");
+const num=v=>v===""||v==null||isNaN(Number(v))?null:Number(v);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function newMoon(k){const T=k/1236.85,R=Math.PI/180,E=1-0.002516*T-0.0000074*T*T,
+ M=(2.5534+29.1053567*k)*R,P=(201.5643+385.81693528*k+0.0107582*T*T)*R,F=(160.7108+390.67050284*k-0.0016118*T*T)*R,O=(124.7746-1.56375588*k)*R;
+ return 2451550.09766+29.530588861*k+0.00015437*T*T-0.4072*Math.sin(P)+0.17241*E*Math.sin(M)+0.01608*Math.sin(2*P)+0.01039*Math.sin(2*F)+0.00739*E*Math.sin(P-M)-0.00514*E*Math.sin(P+M)+0.00208*E*E*Math.sin(2*M)-0.00111*Math.sin(P-2*F)-0.00057*Math.sin(P+2*F)+0.00056*E*Math.sin(2*P+M)-0.00042*Math.sin(3*P)+0.00042*E*Math.sin(M+2*F)+0.00038*E*Math.sin(M-2*F)-0.00024*E*Math.sin(2*P-M)-0.00017*Math.sin(O)}
+function age(y,m,d){const jd=Date.UTC(y,m,d,3)/864e5+2440587.5;let k=Math.floor((jd-2451550.09766)/29.530588861);while(newMoon(k+1)<=jd)k++;while(newMoon(k)>jd)k--;return jd-newMoon(k)}
+function shio(a){const d=Math.min(30,Math.floor(a)+1),r=((d-1)%15)+1;if(r<=4)return"大潮";if(r<=7||r>=13)return"中潮";if(r<=10)return"小潮";return r===11?"長潮":"若潮"}
+const moon=a=>MOONS[Math.floor(a/SYN*8+.5)%8];
+function loadMan(){try{return JSON.parse(localStorage.getItem("bw_man")||"[]")}catch(e){return[]}}
+function saveMan(){try{localStorage.setItem("bw_man",JSON.stringify(man))}catch(e){}}
+function loadView(){const d={cm:"temp",rng:"7",cs:"",ce:"",yr:{},base:"r10"};try{return Object.assign(d,JSON.parse(localStorage.getItem("bw_view")||"{}"))}catch(e){return d}}
+function saveView(){try{localStorage.setItem("bw_view",JSON.stringify(view))}catch(e){}}
+let auto=[],hist=[],histHourly=false,histTried=false,histNote="",man=loadMan(),view=loadView(),cur=new Date(),tab="wx",err="読み込み中…";
+const all=()=>auto.concat(expandMan());
+function expandMan(){const out=[],H=36e5,nowT=Math.floor(Date.now()/H)*H,fl={};
+ man.forEach(r=>{if(r.level!=null||r.temp!=null)out.push({...r,flow:null,src:"m"});if(r.flow!=null)(fl[r.place]=fl[r.place]||[]).push(r)});
+ for(const p in fl){const a=fl[p].slice().sort((x,y)=>x.time<y.time?-1:x.time>y.time?1:0);
+  a.forEach((r,i)=>{const s=new Date(r.time).getTime();if(isNaN(s))return;const s0=Math.floor(s/H)*H;let e=nowT;
+   const nx=a[i+1]&&a[i+1].time!==r.time?new Date(a[i+1].time).getTime()-H:null;
+   if(nx!=null&&nx<e)e=nx;
+   if(r.end){const x=new Date(r.end+"T23:00").getTime();if(!isNaN(x)&&x<e)e=x}
+   if(e<s0){out.push({...r,level:null,temp:null,src:"m"});return}
+   for(let t=s0;t<=e;t+=H){const d=new Date(t);out.push({time:`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:00`,place:p,level:null,flow:r.flow,temp:null,src:"m"})}})}
+ return out}
+async function loadCsv(){
+ for(const u of CSV_URLS){
+  try{const r=await fetch(u+"?t="+Date.now());if(!r.ok)throw new Error(r.status);
+   const ls=(await r.text()).trim().split(/\r?\n/),hd=ls.shift().split(",");
+   auto=ls.map(l=>{const c=l.split(","),o={};hd.forEach((k,i)=>o[k]=c[i]);return{time:o.time,place:o.place,level:num(o.level),flow:num(o.flow),temp:num(o.temp),src:"a"}});
+   err="";return}catch(e){err="データを読み込めませんでした("+e.message+")"}}
+}
+async function fetchRows(urls,src){
+ for(const u of urls){
+  try{const r=await fetch(u+"?t="+Date.now());if(!r.ok)throw new Error(r.status);
+   const ls=(await r.text()).trim().split(/\r?\n/),hd=ls.shift().split(",");
+   return ls.map(l=>{const c=l.split(","),o={};hd.forEach((k,i)=>o[k]=c[i]);return{time:o.time,place:o.place,level:num(o.level),flow:num(o.flow),temp:num(o.temp),src}})}catch(e){}}
+ return null}
+async function loadHistDaily(){const r=await fetchRows(HD_URLS,"h");if(r&&!histHourly){hist=r;refreshTab()}}
+async function loadHistHourly(){
+ if(histHourly||histTried)return;histTried=true;histNote="1時間ごとの過去データを読み込み中…";refreshTab();
+ const r=await fetchRows(HH_URLS,"h");
+ if(r){hist=r;histHourly=true;histNote=""}else histNote="1時間ごとの過去データを読み込めませんでした(日平均で表示しています)";
+ refreshTab()}
+const refreshTab=()=>{if(tab==="chart")chart();if(tab==="trip")trip()};
+const tsOf=r=>r.ts??(r.ts=new Date(r.time).getTime());
+function down(q,m,N=1500){if(q.length<=N)return q;const st=q.length/N,o=[];for(let i=0;i<N;i++){const a=Math.floor(i*st),b=Math.floor((i+1)*st),sl=q.slice(a,b);if(!sl.length)continue;o.push({time:sl[Math.floor(sl.length/2)].time,ts:tsOf(sl[Math.floor(sl.length/2)]),[m]:sl.reduce((t,r)=>t+r[m],0)/sl.length})}return o}
+function climAt(p,ts,bb){const b=bb||view.base,c=CLIM[b]&&CLIM[b][p];if(!c)return null;
+ const d=new Date(ts),i=(Date.UTC(2000,d.getMonth(),d.getDate())-Date.UTC(2000,0,1))/864e5,g=Math.min(i/5,72.999),k=Math.floor(g),f=g-k;
+ return{m:c.m[k]*(1-f)+c.m[k+1]*f,s:c.s[k]*(1-f)+c.s[k+1]*f}}
+const baseSel=(P="")=>`<select id="${P}bs"><option value="r10">平年:${BASES.r10}</option><option value="all">平年:${BASES.all}</option><option value="off">平年:なし</option></select>`;
+let nfix=0;
+function fixTemp(rows){const g={},out=[];
+ rows.forEach(r=>{if(r.src==="h"||r.temp==null){out.push(r);return}(g[r.place]=g[r.place]||[]).push(r)});
+ for(const p in g){const a=g[p].sort((x,y)=>x.time<y.time?-1:x.time>y.time?1:0),n=a.length,T=a.map(tsOf),bad=new Array(n).fill(false);
+  for(let i=0;i<n;i++){const nb=[];for(let j=Math.max(0,i-3);j<=Math.min(n-1,i+3);j++)if(j!==i&&Math.abs(T[j]-T[i])<=12*36e5)nb.push(a[j].temp);
+   if(nb.length>=2){nb.sort((x,y)=>x-y);const md=nb.length%2?nb[(nb.length-1)/2]:(nb[nb.length/2-1]+nb[nb.length/2])/2;if(Math.abs(a[i].temp-md)>=5)bad[i]=true}}
+  a.forEach((r,i)=>{if(!bad[i]){out.push(r);return}
+   let b=i-1;while(b>=0&&bad[b])b--;let f=i+1;while(f<n&&bad[f])f++;
+   const v=b>=0&&f<n?(a[b].temp+a[f].temp)/2:b>=0?a[b].temp:f<n?a[f].temp:null;
+   if(v==null){out.push(r);return}nfix++;out.push({...r,temp:+v.toFixed(2),raw:r.temp})})}
+ return out}
+function jump(q){let L=null,P=null;for(const r of q)if(!L||r.time>L.time)L=r;if(!L)return null;for(const r of q)if(r.time<L.time&&(!P||r.time>P.time))P=r;
+ if(!P)return null;const gap=(new Date(L.time)-new Date(P.time))/36e5;return gap<=6&&Math.abs(L.temp-P.temp)>=5?{from:P.temp,to:L.temp}:null}
+const WXP=[["塩津",35.5023836,136.1669634,"r",296.4,36.4],["海津大崎",35.4482187,136.0915766,"l",221.0,92.3],["姉川",35.3876593,136.2155335,"r",338.7,159.3],["彦根",35.285681,136.2464279,"r",365.3,286.1],["沖島",35.2024571,136.0636766,"r",200.5,367.8],["安曇川",35.3209525,136.0780844,"l",191.3,231.2],["志賀",35.2008873,135.9264253,"l",90.9,337.7],["琵琶湖大橋",35.1211542,135.9355907,"r",63.5,450.1],["烏丸半島",35.0715445,135.9326148,"r",98.3,516.2],["井筒",35.0544148,135.8793787,"l",17.5,531.0],["プリンスホテル前",35.005424,135.8914975,"r",33.8,588.6]];
+const LAKE=[[283.4,37.4],[281.1,37.4],[279.5,39.6],[281.1,53.2],[278.3,56.6],[278.9,65.1],[268.2,79.2],[269.9,90.0],[276.6,91.7],[276.6,94.5],[273.8,98.4],[274.4,101.8],[271.5,106.4],[271.0,111.4],[269.3,113.1],[263.6,111.4],[263.1,108.0],[264.8,105.2],[263.6,96.7],[252.3,98.4],[249.0,92.8],[247.8,83.7],[250.1,78.1],[254.6,76.4],[255.2,70.2],[253.5,68.5],[247.3,69.0],[245.6,65.7],[242.7,65.7],[238.8,69.0],[234.3,87.1],[227.5,103.0],[221.8,106.4],[217.3,106.9],[215.1,104.7],[209.4,91.1],[206.0,90.5],[197.5,93.9],[193.0,98.4],[190.2,105.8],[182.9,110.3],[175.5,125.0],[175.5,128.4],[178.9,137.4],[179.5,151.0],[176.6,153.3],[173.3,152.7],[169.9,161.2],[169.3,169.7],[171.6,175.3],[171.0,182.1],[172.1,183.8],[174.9,183.8],[180.0,187.2],[197.5,207.0],[201.5,217.7],[204.3,232.4],[208.3,238.1],[207.7,243.7],[203.8,244.9],[203.8,247.7],[201.5,246.0],[193.0,247.1],[178.9,261.8],[167.6,260.1],[155.7,268.6],[154.6,273.7],[156.9,284.4],[152.4,291.8],[136.5,299.1],[119.0,312.1],[115.6,319.5],[107.2,327.4],[106.0,334.2],[107.7,341.0],[99.3,348.3],[86.8,355.7],[84.0,364.1],[75.0,368.7],[72.7,376.6],[68.2,383.9],[67.1,392.4],[73.3,404.8],[75.0,411.0],[77.8,415.0],[84.6,418.4],[75.5,427.4],[74.4,430.3],[74.4,439.3],[78.4,447.2],[77.2,456.8],[64.8,473.2],[56.9,474.9],[56.9,478.3],[59.7,478.9],[60.3,480.6],[58.0,483.4],[58.0,485.7],[48.4,492.5],[49.0,495.3],[42.8,504.3],[43.9,507.7],[40.5,513.9],[34.9,518.5],[34.9,524.7],[30.9,528.6],[30.3,533.7],[24.7,541.6],[25.2,546.2],[24.1,550.1],[25.8,556.9],[19.6,563.7],[20.2,568.2],[23.0,569.9],[25.8,574.4],[33.2,577.8],[42.8,578.4],[46.2,580.6],[46.2,583.5],[49.0,589.1],[49.0,593.6],[56.3,601.6],[57.4,613.4],[59.1,612.9],[59.7,597.6],[61.4,591.4],[59.7,586.9],[62.5,584.0],[66.5,583.5],[71.0,578.4],[71.0,571.0],[66.5,565.9],[68.2,563.7],[68.2,557.5],[64.2,552.4],[63.7,548.4],[60.3,546.7],[60.3,543.9],[68.2,536.0],[69.3,530.3],[74.4,525.2],[78.9,523.0],[79.5,517.3],[80.6,516.8],[84.6,519.0],[87.4,516.8],[86.8,513.9],[81.7,508.3],[80.6,504.9],[86.8,504.9],[86.8,508.8],[89.1,509.4],[91.9,507.7],[94.7,503.2],[93.6,495.3],[89.6,491.9],[85.7,484.5],[87.4,473.8],[90.8,463.6],[91.3,454.0],[95.3,450.1],[98.7,449.5],[107.2,454.6],[115.1,455.7],[122.4,446.1],[122.4,439.9],[124.1,436.5],[128.6,432.5],[134.3,433.1],[140.5,438.2],[147.3,439.9],[151.8,438.2],[154.0,435.4],[155.2,430.8],[159.1,429.1],[168.7,429.1],[180.6,434.2],[185.1,434.2],[191.3,432.0],[194.7,428.6],[197.5,422.4],[197.0,418.4],[192.5,414.4],[191.3,410.5],[191.3,403.7],[195.8,399.2],[194.7,392.4],[198.7,391.3],[199.8,386.2],[203.8,381.1],[205.5,380.5],[207.7,382.8],[215.6,382.8],[220.7,379.4],[220.7,376.6],[213.4,372.0],[215.6,369.2],[224.7,370.9],[229.2,370.3],[236.5,364.7],[236.0,356.2],[238.8,353.4],[252.9,352.8],[259.1,350.6],[272.1,343.2],[283.4,333.0],[294.1,328.5],[322.4,311.0],[332.6,299.1],[346.1,290.6],[353.5,284.4],[358.0,276.5],[363.1,271.4],[362.5,262.4],[374.4,242.0],[374.9,232.4],[380.6,222.8],[381.1,200.8],[376.6,190.6],[373.8,187.2],[367.6,185.5],[364.8,181.0],[358.5,175.3],[347.8,171.9],[328.6,170.8],[329.2,159.5],[327.5,152.1],[316.7,142.5],[311.7,134.6],[311.1,125.6],[307.1,117.7],[305.4,110.9],[303.2,108.0],[304.3,106.4],[312.8,102.4],[312.8,97.3],[307.7,83.7],[307.7,78.7],[304.9,74.1],[306.6,70.7],[306.6,55.5],[300.4,48.1],[294.7,49.3],[293.0,52.1],[289.6,51.5],[287.9,49.3],[286.2,40.2]];const LAKE_W=392.4,LAKE_H=638.8;
+const WXU="https://api.open-meteo.com/v1/forecast?latitude="+WXP.map(p=>p[1]).join(",")+"&longitude="+WXP.map(p=>p[2]).join(",")+"&current=temperature_2m,weather_code,wind_speed_10m,wind_direction_10m&hourly=weather_code,precipitation,wind_speed_10m,wind_direction_10m,wind_gusts_10m&daily=precipitation_sum,weather_code,wind_speed_10m_max,temperature_2m_max,temperature_2m_min&timezone=Asia%2FTokyo&wind_speed_unit=ms&past_days=2&forecast_days=2";
+const WD_URLS=[REPO.replace("history/","")+"weather_daily.csv","data/weather_daily.csv"];
+const WXN=c=>c===0?"快晴":c===1?"晴れ":c===2?"薄曇り":c===3?"曇り":c<=48?"霧":c<=57?"霧雨":c<=65?"雨":c<=67?"みぞれ":c<=77?"雪":c<=82?"にわか雨":c<=86?"にわか雪":"雷雨";
+let wxD=null,wxAt=0,wxErr="",wxSel=-1,wxBusy=false,wxMode="h",wxHist=null,wxW=null,wxG=null,wxK=-1,wxOn=true,wxTry=0,wxF=null,wxFTry=0;
+const WXE=c=>c===0?"☀️":c===1?"🌤":c===2?"⛅":c===3?"☁️":c<=48?"🌫":c<=57?"🌦":c<=67?"🌧":c<=77?"🌨":c<=82?"🌧":c<=86?"🌨":"⛈";
+const DIRN=["北","北東","東","南東","南","南西","西","北西"],dirN=d=>DIRN[Math.round(d/45)%8];
+const arrow=d=>`<span style="display:inline-block;transform:rotate(${d+180}deg)">↑</span>`;
+async function loadWxHist2(){for(const u of WD_URLS){try{const r=await fetch(u+"?t="+Date.now());if(!r.ok)throw new Error(r.status);
+  const ls=(await r.text()).trim().split(/\r?\n/),hd=ls.shift().split(","),o={};
+  ls.forEach(l=>{const c=l.split(","),x={};hd.forEach((k,i)=>x[k]=c[i]);(o[x.place]=o[x.place]||{})[x.date]={code:num(x.code),precip:num(x.precip),wmax:num(x.wmax),tmax:num(x.tmax),tmin:num(x.tmin)}});
+  wxHist=o;return}catch(e){}}
+ if(!wxHist)wxHist={}}
+const wxNeed=()=>!wxD&&!wxBusy&&Date.now()-wxTry>60e3;
+const WXFU="https://api.open-meteo.com/v1/forecast?latitude="+WXP.map(p=>p[1]).join(",")+"&longitude="+WXP.map(p=>p[2]).join(",")+"&daily=weather_code&timezone=Asia%2FTokyo&forecast_days=14";
+async function loadWxF(){wxFTry=Date.now();try{const r=await fetch(WXFU);if(!r.ok)throw new Error(r.status);const j=await r.json(),a=Array.isArray(j)?j:[j],o={};
+  WXP.forEach((p,i)=>{const d=a[i]&&a[i].daily;if(!d)return;o[p[0]]={};d.time.forEach((t,k)=>{if(d.weather_code[k]!=null)o[p[0]][t]=d.weather_code[k]})});wxF=o;if(tab==="cal")cal()}catch(e){}}
+function dayCode(p,d){const i=WXP.findIndex(x=>x[0]===p),D=wxD&&i>=0?wxD[i]:null;if(D){const k=D.daily.time.indexOf(d);if(k>=0&&D.daily.weather_code[k]!=null)return D.daily.weather_code[k]}
+ if(wxF&&wxF[p]&&wxF[p][d]!=null&&d>=nowStr().slice(0,10))return wxF[p][d];const h=wxHist&&wxHist[p]&&wxHist[p][d];return h&&h.code!=null?h.code:null}
+async function loadWx(){if(wxBusy)return;wxBusy=true;wxTry=Date.now();loadWxHist2().then(()=>{if(tab==="wx"&&wxSel>=0)wx();else if(tab==="trip")trip();else if(tab==="nt")notice();else if(tab==="cal")cal()});
+ try{const r=await fetch(WXU);if(!r.ok)throw new Error(r.status);const j=await r.json();wxD=Array.isArray(j)?j:[j];wxW=null;wxAt=Date.now();wxErr=""}
+ catch(e){wxErr="天気を読み込めませんでした("+e.message+")"}
+ wxBusy=false;if(tab==="wx")wx();else if(tab==="nt")notice();else if(tab==="trip")trip();else if(tab==="cal")cal();renderTabs()}
+const TAU=4/Math.LN10;
+function wxGeo(){if(wxG)return wxG;
+ const D=LAKE.map(p=>p.slice()),W=Math.round(LAKE_W),H=Math.round(LAKE_H),d="M"+D.map(p=>p.join(",")).join("L")+"Z";
+ const S=[];let acc=0,nx=0;for(let i=0;i<D.length;i++){const a=D[i],b=D[(i+1)%D.length],l=Math.hypot(b[0]-a[0],b[1]-a[1]);
+  while(nx<=acc+l){const f=l?(nx-acc)/l:0;S.push([a[0]+(b[0]-a[0])*f,a[1]+(b[1]-a[1])*f]);nx+=20}acc+=l}
+ wxG={W,H,d,D,S};return wxG}
+function inLake(G,x,y){let c=false;const D=G.D;for(let i=0,j=D.length-1;i<D.length;j=i++){const a=D[i],b=D[j];if((a[1]>y)!==(b[1]>y)&&x<(b[0]-a[0])*(y-a[1])/(b[1]-a[1])+a[0])c=!c}return c}
+function wxWave(){const G=wxGeo(),S=G.S;
+ if(!G.F){G.F=S.map(([x,y])=>{const f=[];for(let s=0;s<16;s++){const th=s*Math.PI/8,dx=Math.sin(th),dy=-Math.cos(th);let L=0;for(let r=7;r<=600;r+=10){if(!inLake(G,x+dx*r,y+dy*r))break;L=r}f.push(L/10)}return f});
+  G.Wt=S.map(([x,y])=>{const w=WXP.map(p=>1/(Math.pow(Math.hypot(x-p[4],y-p[5]),2)+100)),t=w.reduce((a,b)=>a+b,0);return w.map(v=>v/t)})}
+ const hh=wxD.map(d=>d.hourly),N=hh[0].time.length,H=S.map(()=>new Float32Array(N)),dec=Math.exp(-1/TAU);
+ for(let k=0;k<N;k++){const ve=hh.map(h=>-(h.wind_speed_10m[k]||0)*Math.sin((h.wind_direction_10m[k]||0)*Math.PI/180)),vn=hh.map(h=>-(h.wind_speed_10m[k]||0)*Math.cos((h.wind_direction_10m[k]||0)*Math.PI/180));
+  S.forEach((_,j)=>{const w=G.Wt[j];let e=0,n=0;for(let i=0;i<w.length;i++){e+=w[i]*ve[i];n+=w[i]*vn[i]}
+   const U=Math.hypot(e,n),th=((Math.atan2(-e,-n)*180/Math.PI)+360)%360,F=G.F[j][Math.round(th/22.5)%16];
+   const tg=0.0016*U*Math.sqrt(F*1000/9.8);H[j][k]=Math.max(tg,k?H[j][k-1]*dec:0)})}
+ return H}
+function wcol(h){const st=[[.1,[242,208,75]],[.3,[242,153,74]],[.6,[229,83,61]],[1,[164,22,26]]];if(h<=st[0][0])return`rgb(${st[0][1]})`;
+ for(let i=1;i<st.length;i++)if(h<=st[i][0]){const f=(h-st[i-1][0])/(st[i][0]-st[i-1][0]),a=st[i-1][1],b=st[i][1];return`rgb(${a.map((v,q)=>Math.round(v+(b[q]-v)*f))})`}return`rgb(${st[3][1]})`}
+function nowIdx(){const t=wxD&&wxD[0].current.time.slice(0,13),i=wxD?wxD[0].hourly.time.findIndex(x=>x.slice(0,13)===t):-1;return i<0?0:i}
+function shoreSvg(k){if(!wxW||!wxOn)return"";const S=wxGeo().S,n=S.length;let o="";
+ for(let j=0;j<n;j++){const h=(wxW[j][k]+wxW[(j+1)%n][k])/2;if(h<.1)continue;const a=S[j],b=S[(j+1)%n];
+  o+=`<line x1="${a[0].toFixed(0)}" y1="${a[1].toFixed(0)}" x2="${b[0].toFixed(0)}" y2="${b[1].toFixed(0)}" stroke="${wcol(h)}" stroke-width="12" stroke-linecap="round" opacity="${Math.max(.3,Math.min(.95,h/.35)).toFixed(2)}"/>`}
+ return o}
+function pinsSvg(k){const G=wxGeo();let g="";
+ WXP.forEach(([nm,la,lo,sd,x,y],i)=>{const D=wxD&&wxD[i],hh=D&&D.hourly,c=hh&&hh.wind_speed_10m[k]!=null?{weather_code:hh.weather_code[k],wind_speed_10m:hh.wind_speed_10m[k],wind_direction_10m:hh.wind_direction_10m[k]}:null,l=sd==="l";
+  const tx=l?-30:30,an=l?"end":"start";
+  g+=`<g class="pin" data-i="${i}" transform="translate(${x},${y})"><circle r="21" fill="var(--card)" stroke="${i===wxSel?"#d1242f":"var(--ac)"}" stroke-width="${i===wxSel?4:2}"/>
+   <text y="8" font-size="24" text-anchor="middle">${c?WXE(c.weather_code):"…"}</text>`+
+   (c?`<g transform="translate(${l?-17:17},17)"><circle r="10" fill="var(--ac)"/><g transform="rotate(${c.wind_direction_10m+180})"><path d="M0,-7 L5,4 L0,1 L-5,4Z" fill="#fff"/></g></g>`:"")+
+   `<text x="${tx}" y="-3" font-size="16" font-weight="700" text-anchor="${an}" fill="var(--tx)" stroke="var(--card)" stroke-width="4" paint-order="stroke">${nm}</text>
+   <text x="${tx}" y="16" font-size="14" text-anchor="${an}" fill="var(--tx)" stroke="var(--card)" stroke-width="4" paint-order="stroke">${c?`${dirN(c.wind_direction_10m)} ${c.wind_speed_10m.toFixed(1)}m/s`:""}</text></g>`});
+ return g}
+function wxLab(k){if(!wxD)return"";const t=wxD[0].hourly.time[k],td=wxD[0].current.time.slice(0,10),dd=Math.round((new Date(t.slice(0,10))-new Date(td))/864e5),n=nowIdx();
+ return`${{"-2":"一昨日","-1":"昨日","0":"今日","1":"明日"}[dd]||t.slice(5,10)} ${+t.slice(11,13)}時 ${k===n?"(いま)":k<n?"(過去)":"(予報)"}`}
+function wxPaint(){if(!wxD)return;const k=wxK;
+ const a=$("#wxs"),b=$("#wxp"),l=$("#wlab"),sl=$("#wsl");if(a)a.innerHTML=shoreSvg(k);if(b)b.innerHTML=pinsSvg(k);if(l)l.textContent=wxLab(k);if(sl)sl.value=k}
+function wx(){
+ if((!wxD||Date.now()-wxAt>15*60e3)&&Date.now()-wxTry>60e3)loadWx();
+ if(wxD&&!wxW){try{wxW=wxWave()}catch(e){wxW=null}}
+ if(wxD&&(wxK<0||wxK>=wxD[0].hourly.time.length))wxK=nowIdx();
+ const G=wxGeo(),W=G.W,H=G.H,N=wxD?wxD[0].hourly.time.length:1,K=Math.max(0,wxK);
+ const g=`<path d="${G.d}Z" fill="#9cc7ef" stroke="#4f8fcb" stroke-width="3" stroke-linejoin="round" opacity=".9"/><g id="wxs">${shoreSvg(K)}</g><g id="wxp">${pinsSvg(K)}</g>`;
+ let sh="";
+ if(wxSel>=0&&wxD&&wxD[wxSel]){const D=wxD[wxSel],c=D.current,hh=D.hourly,ds=D.daily,nowH=c.time.slice(0,13),td=c.time.slice(0,10),nm=WXP[wxSel][0];
+  const DL={"-2":"一昨日","-1":"昨日","0":"今日","1":"明日"},dl=day=>DL[Math.round((new Date(day)-new Date(td))/864e5)]||day,wd=day=>"日月火水木金土"[new Date(day+"T00:00").getDay()];
+  const pr=day=>{const i=ds.time.indexOf(day);return i<0||ds.precipitation_sum[i]==null?"–":ds.precipitation_sum[i].toFixed(1)};
+  let body="";
+  if(wxMode==="h"){let rows="",last="";
+   hh.time.forEach((t,i)=>{const day=t.slice(0,10);if(day!==last){last=day;rows+=`<tr><td colspan="4" class="note"><b>${dl(day)}(${day.slice(5).replace("-","/")})</b> 降水量合計 ${pr(day)}mm</td></tr>`}
+    if(hh.precipitation[i]==null)return;
+    const cn=t.slice(0,13)===nowH;rows+=`<tr class="${cn?"cn":""}"${cn?' id="wxcn"':""}><td>${+t.slice(11,13)}時</td><td>${WXE(hh.weather_code[i])}</td><td class="n">${hh.precipitation[i].toFixed(1)}mm<span class="bar" style="width:${Math.min(60,hh.precipitation[i]*12)}px"></span></td><td>${arrow(hh.wind_direction_10m[i])} ${dirN(hh.wind_direction_10m[i])} <b>${hh.wind_speed_10m[i].toFixed(1)}</b><span class="note"> (瞬間${hh.wind_gusts_10m[i].toFixed(1)})</span></td></tr>`});
+   body=`<table><tr><th>時刻</th><th></th><th class="n">降水量</th><th>風向・風速(m/s)</th></tr>${rows}</table>`}
+  else{const m={},H=(wxHist&&wxHist[nm])||{};for(const k in H)m[k]=H[k];
+   ds.time.forEach((day,i)=>{if(day<=td&&ds.weather_code[i]!=null)m[day]={code:ds.weather_code[i],precip:ds.precipitation_sum[i],wmax:ds.wind_speed_10m_max[i],tmax:ds.temperature_2m_max[i],tmin:ds.temperature_2m_min[i]}});
+   const days=Object.keys(m).filter(d=>d<=td).sort().reverse().slice(0,120);
+   body=`<table><tr><th>日付</th><th>天気</th><th class="n">雨量合計</th><th class="n">最大風速</th><th class="n">気温(低〜高)</th></tr>`+days.map(d=>{const x=m[d];return`<tr class="${d===td?"cn":""}"><td>${+d.slice(5,7)}/${+d.slice(8)}(${wd(d)})</td><td>${x.code==null?"–":WXE(x.code)+" "+WXN(x.code)}</td><td class="n">${x.precip==null?"–":x.precip.toFixed(1)+"mm"}</td><td class="n">${x.wmax==null?"–":x.wmax.toFixed(1)}</td><td class="n">${x.tmin==null?"–":Math.round(x.tmin)+"〜"+Math.round(x.tmax)+"℃"}</td></tr>`}).join("")+`</table><p class="note">今日の行は途中の値です。昨日までは、毎時の自動取得で保存した日ごとの記録です。</p>`}
+  sh=`<div class="sheet"><div class="row"><b style="flex:1;font-size:17px">${nm}</b><button id="wxc">閉じる</button></div>
+  <div style="font-size:15px">${WXE(c.weather_code)} <b>${(+c.temperature_2m).toFixed(1)}℃</b>　${arrow(c.wind_direction_10m)} ${dirN(c.wind_direction_10m)}の風 <b>${c.wind_speed_10m.toFixed(1)}</b>m/s</div>
+  <div class="note" style="margin:4px 0">雨量の合計: 一昨日 <b>${pr(ds.time[0])}</b> / 昨日 <b>${pr(ds.time[1])}</b> / 今日 <b>${pr(td)}</b> / 明日 <b>${pr(ds.time[3])}</b> mm</div>
+  <div class="row"><button class="${wxMode==="h"?"pri":""}" id="wmh">1時間ごと(48時間前から)</button><button class="${wxMode==="d"?"pri":""}" id="wmd">日ごとの記録</button></div>
+  <div class="tb">${body}</div></div>`}
+ $("#v-wx").innerHTML=`<div id="wxm" class="${sh?"op":""}"><svg viewBox="-90 -10 ${W+190} ${H+20}" style="background:var(--sml);border-radius:12px">${g}</svg>
+  <div class="row" style="margin-top:8px"><button id="wnow">いま</button><button id="wm">−1時間</button><input type="range" id="wsl" min="0" max="${N-1}" value="${K}" style="flex:1;min-width:120px"><button id="wp">+1時間</button></div>
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b id="wlab">${wxLab(K)}</b><button id="wwv" class="${wxOn?"pri":""}">荒れの目安 ${wxOn?"表示中":"非表示"}</button></div>
+  <p class="note"><span style="color:#f2d04b">━</span>〜0.2m <span style="color:#f2994a">━</span>0.3m <span style="color:#e5533d">━</span>0.6m <span style="color:#a4161a">━</span>1m以上(風の吹き寄せる岸の波高の目安)。風がやんでも、約4時間かけて薄くなります。風の予報から計算した推定で、実測ではありません。安全の判断には使わないでください。</p>
+  <p class="note">天気: Open-Meteo(予報モデルの値)。${wxAt?"取得 "+new Date(wxAt).toLocaleTimeString("ja-JP",{hour:"2-digit",minute:"2-digit"}):""} <button id="wxr">更新</button> ${wxBusy?"読み込み中…":""} ${esc(wxErr)}</p></div>${sh}`;
+ {const sv=$("#v-wx").querySelector("svg");if(sv)sv.onclick=e=>{const p=e.target.closest&&e.target.closest("g.pin");if(p){wxSel=+p.dataset.i;wx()}}}
+ {const sl=$("#wsl");if(sl){sl.oninput=e=>{wxK=+e.target.value;wxPaint()};
+  $("#wnow").onclick=()=>{wxK=nowIdx();wxPaint()};$("#wm").onclick=()=>{wxK=Math.max(0,wxK-1);wxPaint()};$("#wp").onclick=()=>{wxK=Math.min(N-1,wxK+1);wxPaint()};
+  $("#wwv").onclick=()=>{wxOn=!wxOn;wx()}}}
+ {const c=$("#wxc");if(c)c.onclick=()=>{wxSel=-1;wx()}}
+ {const h=$("#wmh"),d=$("#wmd");if(h){h.onclick=()=>{wxMode="h";wx()};d.onclick=()=>{wxMode="d";wx()}}}
+ {const r=$("#wxr");if(r)r.onclick=()=>{wxAt=0;loadWx()}}
+ {const c=$("#wxcn"),f=$(".tb");if(c&&f)f.scrollTop=Math.max(0,c.offsetTop-f.clientHeight/3)}
+ if(wxSel>=0){const e=$("#v-wx").querySelectorAll("g.pin")[wxSel];if(e&&e.getBoundingClientRect){const b=e.getBoundingClientRect().bottom,lim=innerHeight*.42;if(b>lim)scrollBy(0,b-lim+10)}}
+}
+function renderTabs(){$("#tabs").innerHTML=TABS.map(([k,n])=>`<button class="${k===tab?"on":""}" data-k="${k}">${n}${k==="nt"?ntBadge():""}</button>${k==="cal"?'<span style="flex-basis:100%;height:0"></span>':""}`).join("");
+ $("#tabs").querySelectorAll("button").forEach(b=>b.onclick=()=>{tab=b.dataset.k;show()})}
+function show(){try{window.goatcounter&&goatcounter.count&&goatcounter.count({path:"/tab/"+tab,title:"tab "+tab,event:true})}catch(e){}renderTabs();TABS.forEach(([k])=>$("#v-"+k).hidden=k!==tab);({now:now,cal:cal,chart:chart,wx:wx,trip:trip,nt:notice,rec:rec})[tab]()}
+const DP={level:2,flow:1,temp:1};
+function nearest(rs,t,tol){let b=null,bd=1e18;for(const r of rs){const d=Math.abs(new Date(r.time).getTime()-t);if(d<bd){bd=d;b=r}}return b&&bd<=tol?b:null}
+const dif=(a,b,m)=>a&&b?a[m]-b[m]:null;
+function chg(v,m){if(v==null)return"–";const dp=DP[m];if(Math.abs(v)<0.5*Math.pow(10,-dp))return"±0";return`<span class="${v>0?"up":"dn"}">${v>0?"▲":"▼"}${Math.abs(v).toFixed(dp)}</span>`}
+/* ===== 産卵の目安(南湖) ===== */
+const SPP=["唐橋(瀬田川)","雄琴沖"];
+function spawnCard(rs,at){at=at||new Date();const ds=at.getFullYear()+"-"+pad(at.getMonth()+1)+"-"+pad(at.getDate());
+ const per=SPP.filter(p=>rs.some(r=>r.place===p&&r.temp!=null)).map(p=>{const v=[];for(let k=0;k<7;k++){const x=dayAvg(rs,"temp",dstr(ds,-k),p);if(x!=null)v.push(x)}return{p,n:v.length,t:v.length?v.reduce((a,b)=>a+b,0)/v.length:null}}).filter(o=>o.n>=3);
+ if(!per.length)return"";
+ const T=per.reduce((a,o)=>a+o.t,0)/per.length,mon=at.getMonth()+1,inS=mon>=2&&mon<=8,y=at.getFullYear();
+ const base=view.base==="off"?"r10":view.base,cm=d=>{const ts=new Date(y,0,1+d).getTime(),v=SPP.map(p=>climAt(p,ts,base)).filter(Boolean);return v.length?v.reduce((a,c)=>a+c.m,0)/v.length:null};
+ const cross=th=>{for(let d=40;d<215;d++){const a=cm(d),b=cm(d+1);if(a!=null&&b!=null&&a<th&&b>=th)return d+(th-a)/(b-a)}return null};
+ const lbl=d=>{if(d==null)return"–";const x=new Date(y,0,1+Math.round(d)),dd=x.getDate();return(x.getMonth()+1)+"月"+(dd<=10?"上旬":dd<=20?"中旬":"下旬")};
+ const ST=T<12?["産卵前(水温が低い)","#8b949e","まだ動きは鈍い時期です。"]:T<15?["プリスポーン(産卵の準備)","#0a7ea4","産卵床が見られ始める水温の手前です。浅場に差してくる時期。"]:T<16?["産卵が始まる水温","#1a7f37","一般に15℃以上で産卵が始まります。"]:T<20?["産卵の中心","#d1242f","琵琶湖で産卵が最も多いとされる水温(16〜20℃前後)です。"]:T<24?["産卵の後半〜終盤","#9a6700","ピークは20℃前後。24℃近くまでは産卵します。"]:["産卵期は終わり","#8b949e","産卵に向く水温を超えています。"];
+ let sh="";if(inS&&mon<=7&&T<24){const d=cross(T);if(d!=null){const td=(Date.UTC(y,at.getMonth(),at.getDate())-Date.UTC(y,0,1))/864e5,df=Math.round(d-td);sh=`<div style="margin-top:6px">平年と比べて <b>${Math.abs(df)<=2?"ほぼ平年並み":"約"+Math.abs(df)+"日 "+(df>0?"早い":"遅い")}</b> <span class="note">(今の水温が平年だと${lbl(d)}ごろの値)</span></div>`}}
+ return`<div class="card"><b>🐟 バスの産卵の目安(南湖)</b>
+ <div style="font-size:22px;margin:6px 0"><b>${T.toFixed(1)}℃</b> <span class="note">直近7日の平均 (${per.map(o=>esc(o.p.replace(/\(.*\)/,""))+" "+o.t.toFixed(1)).join("・")})</span></div>
+ ${inS?`<div><span style="background:${ST[1]};color:#fff;border-radius:12px;padding:3px 12px;font-weight:bold">${ST[0]}</span></div><div class="note" style="margin-top:4px">${ST[2]}</div>`:`<div class="note">いまは産卵期(2〜8月ごろ)ではありません。</div>`}${sh}
+ <div class="note" style="margin-top:6px">平年(${BASES[base]})では、水温が15℃になるのは${lbl(cross(15))}、16℃は${lbl(cross(16))}、20℃は${lbl(cross(20))}ごろです。</div>
+ <div class="note" style="margin-top:4px">南湖の沖の水温での目安です。北湖は場所差が大きいため対象外です。岸の浅場や内湖は、沖より先に暖まります。急な冷え込みや大雨で、産卵が中断・遅れることもあります。主な産卵水温16〜20℃は環境省の琵琶湖の資料によります。</div></div>`}
+function now(){
+ const t=new Date(),a=age(t.getFullYear(),t.getMonth(),t.getDate()),rs=all(),H=36e5,keys=Object.keys(LAB);
+ const la=auto.reduce((m,r)=>r.time>m?r.time:m,"");
+ const hr=la?(Date.now()-new Date(la).getTime())/H:0,bad=la&&hr>=3;
+ const by=m=>{const o={};rs.filter(r=>r[m]!=null).forEach(r=>(o[r.place]=o[r.place]||[]).push(r));return o};
+ const latest=q=>q.reduce((x,r)=>r.time>x.time?r:x);
+ let h=`<div class="card${bad?" bad":""}"><div style="font-size:18px"><span class="note">今日</span> <b>${moon(a)} ${shio(a)}</b> <span class="note">月齢${a.toFixed(1)}</span></div>`;
+ for(const m of keys){const g=by(m);let ps=Object.keys(g);if(m==="level"&&g["琵琶湖(平均)"])ps=["琵琶湖(平均)"];if(!ps.length)continue;
+  h+=`<div style="margin-top:8px"><div class="lbl">${LAB[m]}</div>`+ps.map(p=>`<span class="chip">${esc(p)} ${m==="temp"&&jump(g[p])?"⚠️":""}<b>${latest(g[p])[m]}</b></span>`).join("")+`</div>`}
+ if(la)h+=`<div class="note" style="margin-top:8px">データ最終更新 ${la.replace("T"," ")}(${hr<1?"1時間以内":Math.floor(hr)+"時間前"})</div>`;
+ if(bad)h+=`<div class="warn">3時間以上更新がありません。取得が止まっている可能性があります。GitHub の Actions を確認してください。</div>`;
+ h+=`</div>`;
+ for(const m of keys){
+  const g=by(m),ps=Object.keys(g);if(!ps.length)continue;
+  const cl=(m==="temp"||m==="level")&&view.base!=="off";
+  h+=`<div class="card scroll"><div class="row"><b style="flex:1">${LAB[m]}</b>${m==="temp"?baseSel():""}</div><table><tr><th>地点</th><th class="n">現在</th><th class="n">前日比</th><th class="n">3時間</th>${cl?'<th class="n">平年差</th>':""}<th>時刻</th></tr>`+ps.map(p=>{
+   const q=g[p],L=latest(q),T=new Date(L.time).getTime();
+   const d1=dif(L,nearest(q,T-24*H,2*H),m),d3=dif(L,nearest(q,T-3*H,1*H),m);
+   const stale=L.src==="a"&&(Date.now()-T)/H>=3;
+   let ca="";if(cl){const c=climM(m,p,T);ca=c?`<td class="n">${chg(L[m]-c.m,m)}<span class="note"> ${Math.abs(L[m]-c.m)<c.s*0.5?"並":L[m]>c.m?(L[m]-c.m>=c.s?"高め":"やや高"):(c.m-L[m]>=c.s?"低め":"やや低")}</span></td>`:'<td class="n">–</td>'}
+   return`<tr><td>${esc(p)}</td><td class="n">${m==="temp"&&jump(q)?"⚠️ ":""}<b>${L[m]}</b></td><td class="n">${chg(d1,m)}</td><td class="n">${chg(d3,m)}</td>${ca}<td class="note${stale?" warn":""}">${stale?"⚠ ":""}${L.time.slice(5).replace("T"," ")}</td></tr>`}).join("")+`</table></div>`}
+ {const jl=Object.entries(by("temp")).map(([p,q])=>[p,jump(q)]).filter(x=>x[1]);
+  if(jl.length)h+=`<p class="warn">⚠️ 水温が前回の値から5℃以上変化しています: ${jl.map(([p,j])=>esc(p)+"("+j.from+"→"+j.to+")").join("、")}。センサー異常の可能性があります。</p>`}
+ h+=`<p class="note">平年差は、選んだ期間の同じ時期の平均との差です(水位は鳥居川の日データから作成。全期間は1991〜2024年)。「高め/低め」は±1標準偏差を超えた場合です。雄琴沖は閉局前のデータと唐橋・大橋からの推定値です。</p>`;
+ if(err)h+=`<p class="note">${esc(err)}</p>`;
+ try{h+=spawnCard(rs)}catch(e){}
+ $("#v-now").innerHTML=h;
+ const b=$("#bs");if(b){b.value=view.base;b.onchange=e=>{view.base=e.target.value;saveView();now()}}
+}
+let calSel=null,calPl="彦根",calPick=false;
+function cal(){
+ const y=cur.getFullYear(),m=cur.getMonth(),n=new Date(y,m+1,0).getDate(),f=new Date(y,m,1).getDay(),t=new Date();
+ let h=`<div class="card"><div class="row"><button id="pv">←</button><b id="ch" style="flex:1;text-align:center;cursor:pointer;padding:6px 0">${y}年${m+1}月 ▾</b><button id="nx">→</button></div>`;
+ if(calPick)h+=`<div class="row"><select id="cy">${Array.from({length:46},(_,i)=>1995+i).map(v=>`<option value="${v}"${v===y?" selected":""}>${v}年</option>`).join("")}</select><select id="cmn">${Array.from({length:12},(_,i)=>`<option value="${i}"${i===m?" selected":""}>${i+1}月</option>`).join("")}</select><button id="ct">今月</button></div>`;
+ h+=`<div class="row"><label style="flex:1">天気マークの地点<select id="cpl">${WXP.map(p=>`<option value="${esc(p[0])}"${p[0]===calPl?" selected":""}>${esc(p[0])}</option>`).join("")}</select></label></div><div class="cal">`+"日月火水木金土".split("").map(c=>`<div class="h">${c}</div>`).join("")+"<div></div>".repeat(f);
+ for(let d=1;d<=n;d++){const a=age(y,m,d),sh=shio(a),ds=`${y}-${pad(m+1)}-${pad(d)}`,wc=dayCode(calPl,ds),td=t.getFullYear()===y&&t.getMonth()===m&&t.getDate()===d,tr=tripOn(ds).length>0;
+  h+=`<div class="d ${sh} ${td?"t":""}${calSel===ds?" sel":""}" data-d="${ds}" style="cursor:pointer"><b>${d}</b> ${moon(a)}<span>${sh}</span><span style="font-size:16px;color:var(--tx)">${wc!=null?WXE(wc):""}${wc>=45&&wc<=48?'<span style="font-size:10px;margin-left:1px">霧</span>':""}</span></div>`}
+ h+=`</div><p class="note">潮名は月齢から計算した目安です。公開されている潮名と1日ずれる場合があります。日付をタップすると、その日のデータが見られます。天気のマークは、過去は記録、今日から先は予報です。</p></div>`;
+ if(calSel)h+=`<div id="cdet"></div>`;
+ $("#v-cal").innerHTML=h;
+ $("#pv").onclick=()=>{cur=new Date(y,m-1,1);cal()};$("#nx").onclick=()=>{cur=new Date(y,m+1,1);cal()};
+ $("#ch").onclick=()=>{calPick=!calPick;cal()};
+ $("#cpl").onchange=e=>{calPl=e.target.value;cal()};
+ if(wxNeed())loadWx();if(!wxF&&Date.now()-wxFTry>60e3)loadWxF();
+ if(calPick){$("#cy").onchange=e=>{cur=new Date(+e.target.value,m,1);cal()};$("#cmn").onchange=e=>{cur=new Date(y,+e.target.value,1);cal()};$("#ct").onclick=()=>{cur=new Date();calPick=false;cal()}}
+ $("#v-cal").querySelectorAll(".d[data-d]").forEach(e=>e.onclick=()=>{calSel=e.dataset.d;calPick=false;cal();const x=$("#cdet");if(x&&x.scrollIntoView)x.scrollIntoView({behavior:"smooth",block:"start"})});
+ if(calSel)calDetail(calSel);
+}
+function calDetail(d){
+ const el=$("#cdet");if(!el)return;
+ if(wxNeed())loadWx();loadWxHr(+d.slice(0,4));
+ const g=dayAgg(calPl,d),rs=all().concat(hist),tmp=["雄琴沖","唐橋(瀬田川)","安曇川沖"].map(p=>{const q=rs.filter(r=>r.place===p&&r.temp!=null&&r.time.startsWith(d)).map(r=>r.temp);return q.length?`${p} <b>${(q.reduce((a,b)=>a+b,0)/q.length).toFixed(1)}</b>℃${q.length>1?`(${Math.min(...q).toFixed(1)}〜${Math.max(...q).toFixed(1)})`:""}`:null}).filter(Boolean),
+  lv=dayAvg(rs,"level",d,"琵琶湖(平均)")??dayAvg(rs,"level",d,"雄琴沖"),fl=dayAvg(rs,"flow",d),a=age(+d.slice(0,4),+d.slice(5,7)-1,+d.slice(8)),tl=tripOn(d);
+ el.innerHTML=`<div class="card"><div class="row"><b style="flex:1;font-size:17px">${md(d)} ${d.slice(0,4)}年</b><button id="cx">閉じる</button></div>
+ <div>${moon(a)} <b>${shio(a)}</b> <span class="note">月齢${a.toFixed(1)}</span></div>
+ <div class="lbl" style="margin-top:10px">天気</div><div class="row" style="margin:4px 0">${WXP.map(p=>`<button class="pl ${p[0]===calPl?"pri":""}" data-p="${esc(p[0])}">${esc(p[0])}</button>`).join("")}</div>
+ <div>${g.code==null?'<span class="note">この日の天気データはありません</span>':`${WXE(g.code)} <b>${WXN(g.code)}</b>　雨 ${f1(g.precip)}mm　${g.dir==null?"":arrow(g.dir)+" "+dirN(g.dir)+" "}最大 ${f1(g.wmax)}m/s　気温 ${g.tmin==null?"–":Math.round(g.tmin)+"〜"+Math.round(g.tmax)+"℃"}`}</div>
+ <div class="lbl" style="margin-top:10px">水温(日平均)</div><div>${tmp.length?tmp.map(x=>`<span class="chip">${x}</span>`).join(""):'<span class="note">データなし</span>'}</div>
+ <div class="lbl" style="margin-top:6px">水位</div><div>水位 <b>${lv==null?"–":lv.toFixed(2)}</b> m</div>
+ </div>`;
+ $("#cx").onclick=()=>{calSel=null;cal()};
+ el.querySelectorAll("button[data-p]").forEach(b=>b.onclick=()=>{calPl=b.dataset.p;calDetail(d)});
+}
+const fmt=ms=>{const d=new Date(ms);return`${d.getMonth()+1}/${d.getDate()} ${pad(d.getHours())}:00`};
+function chartRender(root,st,o){const P=o.P||"",Q=id=>root.querySelector("#"+P+id);
+ const cm=st.cm,yr=st.yr[cm]||["",""],custom=st.rng==="c";
+ let lo=0,hi=Infinity;
+ if(custom){if(st.cs)lo=new Date(st.cs+"T00:00").getTime();if(st.ce)hi=new Date(st.ce+"T23:59").getTime()}
+ else if(+st.rng)lo=Date.now()-(+st.rng)*864e5;
+ nfix=0;const pts00=all().concat(hist).filter(r=>{const t=tsOf(r);return r[cm]!=null&&t>=lo&&t<=hi}),pts0=cm==="temp"?fixTemp(pts00):pts00;
+ const need=custom&&!histHourly&&!histTried&&st.cs&&lo>0&&lo<HIST_END&&((hi===Infinity?Date.now():hi)-lo)<=62*864e5;
+ const places=[...new Set(pts0.map(r=>r.place))],hid=st.hide||[],pts=pts0.filter(r=>!hid.includes(r.place));
+ let svg='<p class="note">この期間のデータがありません。</p>',leg="",tipFn=null;const series=[];
+ if(pts.length){
+  const W=640,H=260,P=44,xs=pts.map(r=>tsOf(r)),ys=pts.map(r=>r[cm]);
+  const mn=a=>a.reduce((m,v)=>v<m?v:m,Infinity),mx=a=>a.reduce((m,v)=>v>m?v:m,-Infinity);
+  const x0=custom&&st.cs?lo:mn(xs),x1=custom&&st.ce?hi:mx(xs);
+  let y0=mn(ys),y1=mx(ys);
+  if(yr[0]!==""&&!isNaN(+yr[0]))y0=+yr[0];
+  if(yr[1]!==""&&!isNaN(+yr[1]))y1=+yr[1];
+  if(y0===y1&&yr[0]===""&&yr[1]===""){y0-=1;y1+=1}else if(y0>=y1)y1=y0+1;
+  const X=v=>P+(x1===x0?.5:(v-x0)/(x1-x0))*(W-P-10),Y=v=>H-P-(v-y0)/(y1-y0)*(H-P-12);
+  svg=`<svg viewBox="0 0 ${W} ${H}"><defs><clipPath id="${P}cp"><rect x="${P}" y="8" width="${W-P-10}" height="${H-P-8}"/></clipPath></defs>`+
+   [0,.5,1].map(f=>{const v=y0+(y1-y0)*f;return`<line x1="${P}" x2="${W-10}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--ln)"/><text x="${P-4}" y="${Y(v)+4}" font-size="11" text-anchor="end" fill="var(--sub)">${+v.toFixed(2)}</text>`}).join("")+
+   `<text x="${P}" y="${H-14}" font-size="11" fill="var(--sub)">${fmt(x0)}</text><text x="${W-10}" y="${H-14}" font-size="11" text-anchor="end" fill="var(--sub)">${fmt(x1)}</text><g clip-path="url(#${P}cp)">`+(o.band?`<rect x="${X(o.band[0])}" y="8" width="${Math.max(2,X(o.band[1])-X(o.band[0]))}" height="${H-P-8}" fill="#f2c94c" opacity=".3"/><text x="${X(o.band[0])+3}" y="20" font-size="11" fill="var(--sub)">釣行日</text>`:"")+
+   ((cm==="temp"||cm==="level")&&st.base!=="off"&&x1-x0<=400*864e5?places.map((p,i)=>{if(hid.includes(p)||(cm==="level"?places.findIndex(q=>!hid.includes(q))!==i:!CLIM[st.base][p]))return"";const n=100,xa=[],ma=[],sa=[];
+    for(let j=0;j<=n;j++){const t=x0+(x1-x0)*j/n,c=climM(cm,p,t,st.base);xa.push(t);ma.push(c.m);sa.push(c.s)}
+    const up=xa.map((t,j)=>X(t)+","+Y(ma[j]+sa[j])),dn=xa.map((t,j)=>X(t)+","+Y(ma[j]-sa[j])).reverse();
+    return`<polygon points="${up.concat(dn).join(" ")}" fill="${COL[i%COL.length]}" opacity=".13"/><polyline fill="none" stroke="${COL[i%COL.length]}" stroke-width="1.5" stroke-dasharray="5 4" opacity=".8" points="${xa.map((t,j)=>X(t)+","+Y(ma[j])).join(" ")}"/>`}).join(""):"")+
+   places.map((p,i)=>{if(hid.includes(p))return"";const q0=pts.filter(r=>r.place===p).sort((a,b)=>a.time<b.time?-1:a.time>b.time?1:0),q=down(q0,cm);series.push({p,i,q});
+    return`<polyline fill="none" stroke="${COL[i%COL.length]}" stroke-width="2" points="${q.map(r=>X(tsOf(r))+","+Y(r[cm])).join(" ")}"/>`+(q.length<=3?q.map(r=>`<circle cx="${X(tsOf(r))}" cy="${Y(r[cm])}" r="3" fill="${COL[i%COL.length]}"/>`).join(""):"")}).join("")+`</g><g id="${P}tip" pointer-events="none"></g></svg>`;
+  tipFn=(e,sv)=>{const r=sv.getBoundingClientRect(),vx=(e.clientX-r.left)/r.width*W,vy=(e.clientY-r.top)/r.height*H;let b=null,bd=1e18;
+   for(const s of series)for(const q of s.q){const py=Y(q[cm]);if(py<8||py>H-P)continue;const dx=X(tsOf(q))-vx,dy=py-vy,d=dx*dx+dy*dy;if(d<bd){bd=d;b=[s,q]}}
+   const g=sv.querySelector('[id="'+P+'tip"]');if(!b||!g)return;const[s,q]=b,px=X(tsOf(q)),py=Y(q[cm]),d=new Date(tsOf(q)),c=COL[s.i%COL.length],
+   t1=`${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日 ${pad(d.getHours())}:${pad(d.getMinutes())}`,t2=`${s.p}  ${+q[cm].toFixed(2)} ${LAB[cm].replace(/^.*\(/,"").replace(")","")}`,
+   w=Math.max(t1.length*10,t2.length*10)+16,bx=px>W/2?px-w-8:px+8;
+   g.innerHTML=`<line x1="${px}" x2="${px}" y1="8" y2="${H-P}" stroke="${c}" stroke-dasharray="3 3"/><circle cx="${px}" cy="${py}" r="5" fill="${c}" stroke="#fff" stroke-width="1.5"/><rect x="${bx}" y="12" width="${w}" height="38" rx="6" fill="var(--card)" stroke="var(--ln)"/><text x="${bx+8}" y="28" font-size="12" fill="var(--tx)">${t1}</text><text x="${bx+8}" y="44" font-size="12" font-weight="600" fill="${c}">${esc(t2)}</text>`};
+  leg=`<p class="note">`+((cm==="temp"||cm==="level")&&st.base!=="off"&&x1-x0<=400*864e5?`点線=平年(${cm==="level"&&st.base==="all"?"全期間(1991〜2024)":BASES[st.base]})、薄い帯=±1標準偏差`:"")+`</p>`}
+ const chips=places.length?`<div class="row">${places.map((p,i)=>{const on=!hid.includes(p),c=COL[i%COL.length];return`<button class="pl" data-i="${i}" style="border-color:${c};${on?`background:${c};color:#fff`:"opacity:.45;text-decoration:line-through"}">${esc(p)}</button>`}).join("")}</div>`:"";
+ root.innerHTML=`<div class="card"><div class="row"><select id="${P}cm">${Object.keys(LAB).map(k=>`<option value="${k}">${LAB[k]}</option>`).join("")}</select>
+ ${o.fixed?"":`<select id="${P}rg"><option value="2">2日</option><option value="7">7日</option><option value="30">30日</option><option value="0">すべて</option><option value="c">期間を指定</option></select>`}</div>
+ ${custom&&!o.fixed?`<div class="row"><label>開始日<input id="${P}cs" type="date" value="${st.cs}"></label><label>終了日<input id="${P}ce" type="date" value="${st.ce}"></label></div>`:""}
+ ${cm==="temp"?`<div class="row">${baseSel(P)}</div>`:""}
+ ${chips}${svg}${leg}${nfix?`<p class="note">⚠️ 前後の値から5℃以上ずれた異常値 ${nfix} 件を、前後の正常値の平均に直して表示しています(元のデータは変えていません)。</p>`:""}${histNote?`<p class="note">${esc(histNote)}</p>`:""}${err?`<p class="note">${esc(err)}</p>`:""}<div class="row"><label>縦軸の最小<input id="${P}y0" type="number" step="any" placeholder="自動" value="${yr[0]}"></label><label>縦軸の最大<input id="${P}y1" type="number" step="any" placeholder="自動" value="${yr[1]}"></label><button id="${P}ya">自動に戻す</button></div></div>`;
+ Q("cm").value=cm;if(Q("rg"))Q("rg").value=st.rng;
+ root.querySelectorAll("button[data-i]").forEach(b=>b.onclick=()=>{const p=places[+b.dataset.i],h=st.hide||[];st.hide=h.includes(p)?h.filter(x=>x!==p):h.concat(p);o.save();o.rerender()});
+ {const sv=$("#v-chart svg");if(sv&&tipFn)["pointerdown","pointermove"].forEach(ev=>sv.addEventListener(ev,e=>tipFn(e,sv)))}
+ const set=(k,v)=>{st[k]=v;o.save();o.rerender()},setY=(i,v)=>{const a=st.yr[cm]||["",""];a[i]=v;st.yr[cm]=a;o.save();o.rerender()};
+ {const b=Q("bs");if(b){b.value=st.base;b.onchange=e=>set("base",e.target.value)}}
+ Q("cm").onchange=e=>set("cm",e.target.value);if(Q("rg"))Q("rg").onchange=e=>set("rng",e.target.value);
+ if(custom&&!o.fixed){Q("cs").onchange=e=>set("cs",e.target.value);Q("ce").onchange=e=>set("ce",e.target.value)}
+ Q("y0").onchange=e=>setY(0,e.target.value);Q("y1").onchange=e=>setY(1,e.target.value);
+ Q("ya").onclick=()=>{delete st.yr[cm];o.save();o.rerender()};
+ if(need)setTimeout(loadHistHourly,0);
+}
+function chart(){chartRender($("#v-chart"),view,{P:"",save:saveView,rerender:chart});$("#v-chart").insertAdjacentHTML("beforeend",'<div id="rvc"></div>');rvChart();if(rvD===null&&Date.now()-rvTry>6e4)loadRivers()}
+const TRIPK="bw_trips";
+function loadTrips(){try{return JSON.parse(localStorage.getItem(TRIPK)||"[]")}catch(e){return[]}}
+function saveTrips(){try{localStorage.setItem(TRIPK,JSON.stringify(trips))}catch(e){}}
+let trips=loadTrips(),tripSel=null,tripEdit=null,tf=null,tripPl=null,tv=null,wxHr={},wxHrBusy={};
+const dstr=(s,n)=>{const d=new Date(s+"T00:00");d.setDate(d.getDate()+n);return`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`};
+const dayJ=s=>"日月火水木金土"[new Date(s+"T00:00").getDay()],md=s=>`${+s.slice(5,7)}/${+s.slice(8)}(${dayJ(s)})`;
+const tideOf=s=>{const[y,m,d]=s.split("-").map(Number),a=age(y,m-1,d);return moon(a)+" "+shio(a)};
+async function loadWxHr(y){if(wxHr[y]||wxHrBusy[y])return;wxHrBusy[y]=true;
+ for(const u of [REPO.replace("history/","")+`weather_hourly_${y}.csv`,`data/weather_hourly_${y}.csv`]){try{const r=await fetch(u+"?t="+Date.now());if(!r.ok)throw new Error(r.status);
+  const ls=(await r.text()).trim().split(/\r?\n/);ls.shift();const o={};
+  for(const l of ls){const c=l.split(","),w=+c[4],dr=+c[5];if(c[4]===""||isNaN(w))continue;const day=c[0].slice(0,10),a=(o[c[1]]=o[c[1]]||{}),x=(a[day]=a[day]||{vx:0,vn:0,mx:0});
+   x.vx+=-w*Math.sin(dr*Math.PI/180);x.vn+=-w*Math.cos(dr*Math.PI/180);if(w>x.mx)x.mx=w}
+  wxHr[y]=o;break}catch(e){}}
+ if(!wxHr[y])wxHr[y]={};wxHrBusy[y]=false;if(tab==="trip")trip();else if(tab==="cal")cal()}
+function dayAgg(p,day){const o={code:null,precip:null,wmax:null,dir:null,tmax:null,tmin:null},h=wxHist&&wxHist[p]&&wxHist[p][day];
+ if(h)Object.assign(o,{code:h.code,precip:h.precip,wmax:h.wmax,tmax:h.tmax,tmin:h.tmin});
+ const i=WXP.findIndex(x=>x[0]===p),D=wxD&&i>=0?wxD[i]:null;
+ if(D){const k=D.daily.time.indexOf(day);if(k>=0&&D.daily.weather_code[k]!=null)Object.assign(o,{code:D.daily.weather_code[k],precip:D.daily.precipitation_sum[k],wmax:D.daily.wind_speed_10m_max[k],tmax:D.daily.temperature_2m_max[k],tmin:D.daily.temperature_2m_min[k]})}
+ const hr=wxHr[day.slice(0,4)],x=hr&&hr[p]&&hr[p][day];
+ if(x){o.dir=((Math.atan2(-x.vx,-x.vn)*180/Math.PI)+360)%360;if(x.mx)o.wmax=x.mx}
+ else if(D){let vx=0,vn=0,mx=0,n=0;D.hourly.time.forEach((t,k)=>{const w=D.hourly.wind_speed_10m[k];if(t.slice(0,10)!==day||w==null)return;const d=D.hourly.wind_direction_10m[k]*Math.PI/180;vx+=-w*Math.sin(d);vn+=-w*Math.cos(d);if(w>mx)mx=w;n++});
+  if(n){o.dir=((Math.atan2(-vx,-vn)*180/Math.PI)+360)%360;o.wmax=mx}}
+ return o}
+const tripPlaces=t=>{const k=(t.spots||[]).filter(x=>WXP.some(p=>p[0]===x));return k.length?k:WXP.map(p=>p[0])};
+const f1=v=>v==null?"–":(+v).toFixed(1);
+function dayAvg(rs,m,day,pl){const q=rs.filter(r=>r[m]!=null&&r.time.startsWith(day)&&(!pl||r.place===pl));return q.length?q.reduce((t,r)=>t+r[m],0)/q.length:null}
+
+/* ===== Google ドライブ写真 ===== */
+const GCID="46474470668-cgumoi91o5b7vvac0uv990haqihoq3id.apps.googleusercontent.com",PHMAX=8;
+let gtok=null,gexp=0,gtc=null,thumbs={};
+try{const x=JSON.parse(localStorage.getItem("bw_gtok")||"null");if(x&&x.exp>Date.now()){gtok=x.t;gexp=x.exp}}catch(e){}
+try{thumbs=JSON.parse(localStorage.getItem("bw_thumbs")||"{}")||{}}catch(e){thumbs={}}
+const saveThumbs=()=>{try{localStorage.setItem("bw_thumbs",JSON.stringify(thumbs))}catch(e){}};
+const gOK=()=>!!gtok&&Date.now()<gexp-60000;
+const gReady=()=>!!(window.google&&google.accounts&&google.accounts.oauth2);
+function gLoad(){return new Promise((ok,ng)=>{if(gReady())return ok();if(document.getElementById("gsi"))return setTimeout(()=>gLoad().then(ok,ng),300);const s=document.createElement("script");s.id="gsi";s.src="https://accounts.google.com/gsi/client";s.onload=()=>ok();s.onerror=()=>{s.remove();ng(new Error("Googleの読み込みに失敗しました"))};document.head.appendChild(s)})}
+function gAuth(){return new Promise((ok,ng)=>{if(gOK())return ok(gtok);
+ const go=()=>{try{if(!gtc)gtc=google.accounts.oauth2.initTokenClient({client_id:GCID,scope:"https://www.googleapis.com/auth/drive.file",callback:()=>{}});
+  gtc.callback=r=>{if(r.error)return ng(new Error(r.error));gtok=r.access_token;gexp=Date.now()+(+r.expires_in||3600)*1000;try{localStorage.setItem("bw_gtok",JSON.stringify({t:gtok,exp:gexp}))}catch(e){}ok(gtok)};
+  gtc.error_callback=e=>ng(new Error((e&&e.type)||"ログインできませんでした"));
+  gtc.requestAccessToken({prompt:""})}catch(e){ng(e)}};
+ if(gReady())go();else gLoad().then(go,ng)})}
+async function gApi(url,o){o=o||{};o.headers=Object.assign({Authorization:"Bearer "+gtok},o.headers||{});const r=await fetch(url,o);
+ if(r.status===401){gtok=null;try{localStorage.removeItem("bw_gtok")}catch(e){}throw new Error("ログインの期限が切れました。もう一度ログインしてください")}
+ return r}
+async function gFolder(){let f=localStorage.getItem("bw_gfolder");if(f)return f;
+ const q=encodeURIComponent("name='琵琶湖釣行写真' and mimeType='application/vnd.google-apps.folder' and trashed=false");
+ let r=await gApi("https://www.googleapis.com/drive/v3/files?q="+q+"&fields=files(id)"),j=await r.json();
+ if(j.files&&j.files[0])f=j.files[0].id;else{r=await gApi("https://www.googleapis.com/drive/v3/files",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:"琵琶湖釣行写真",mimeType:"application/vnd.google-apps.folder"})});j=await r.json();f=j.id}
+ if(!f)throw new Error("フォルダを作れませんでした");localStorage.setItem("bw_gfolder",f);return f}
+async function gUpload(blob,name){const f=await gFolder(),b="bw"+Date.now(),meta=JSON.stringify({name,parents:[f]});
+ const body=new Blob(["--"+b+"\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n"+meta+"\r\n--"+b+"\r\nContent-Type: image/jpeg\r\n\r\n",blob,"\r\n--"+b+"--"]);
+ const r=await gApi("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id",{method:"POST",headers:{"Content-Type":"multipart/related; boundary="+b},body});
+ if(!r.ok){if(r.status===404)localStorage.removeItem("bw_gfolder");throw new Error("保存に失敗しました("+r.status+")")}
+ return (await r.json()).id}
+async function gGet(id){const r=await gApi("https://www.googleapis.com/drive/v3/files/"+id+"?alt=media");if(!r.ok)throw new Error("写真を読み込めませんでした("+r.status+")");return r.blob()}
+async function gDel(id){const r=await gApi("https://www.googleapis.com/drive/v3/files/"+id,{method:"DELETE"});if(!r.ok&&r.status!==404)throw new Error("Drive側の削除に失敗しました")}
+function shrink(file,max,q){return new Promise((ok,ng)=>{const u=URL.createObjectURL(file),im=new Image();im.onload=()=>{const k=Math.min(1,max/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=Math.max(1,Math.round(im.width*k));c.height=Math.max(1,Math.round(im.height*k));c.getContext("2d").drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);c.toBlob(b=>b?ok(b):ng(new Error("変換に失敗しました")),"image/jpeg",q)};im.onerror=()=>{URL.revokeObjectURL(u);ng(new Error("この写真は読み込めません"))};im.src=u})}
+const b2url=b=>new Promise(ok=>{const r=new FileReader();r.onload=()=>ok(r.result);r.readAsDataURL(b)});
+const idb=()=>new Promise((ok,ng)=>{const r=indexedDB.open("bwph",1);r.onupgradeneeded=()=>r.result.createObjectStore("p");r.onsuccess=()=>ok(r.result);r.onerror=()=>ng(r.error)});
+async function idbPut(k,b){try{const d=await idb();await new Promise((ok,ng)=>{const tx=d.transaction("p","readwrite");tx.objectStore("p").put(b,k);tx.oncomplete=ok;tx.onerror=ng})}catch(e){}}
+async function idbDel(k){try{const d=await idb();await new Promise((ok,ng)=>{const tx=d.transaction("p","readwrite");tx.objectStore("p").delete(k);tx.oncomplete=ok;tx.onerror=ng})}catch(e){}}
+async function idbGet(k){try{const d=await idb();return await new Promise((ok,ng)=>{const q=d.transaction("p").objectStore("p").get(k);q.onsuccess=()=>ok(q.result||null);q.onerror=()=>ng(q.error)})}catch(e){return null}}
+async function photoBlob(id){let b=await idbGet(id);if(b)return b;if(!gOK())return null;b=await gGet(id);idbPut(id,b);return b}
+function photoUI(t,sel,large){sel=sel||"#tph";const box=$(sel);if(!box)return;t.photos=t.photos||[];
+ const n=t.photos.length,again=()=>photoUI(t,sel,large);
+ const st=large?"width:100%;border-radius:12px;margin:6px 0;background:#ccd;display:block;min-height:140px;object-fit:contain":"width:calc(33.3% - 6px);aspect-ratio:1;object-fit:cover;border-radius:8px;background:#ccd;margin:3px";
+ box.innerHTML=`<div class="card" ${large&&n?'style="padding:8px"':""}>${large&&n?"":"<b>📷 写真</b> "}<span class="note">${gOK()?"Googleにログイン中":"未ログイン"}(${n}/${PHMAX}枚)</span>
+ <div ${large?"":'style="display:flex;flex-wrap:wrap;margin:6px -3px"'}>${t.photos.map(id=>`<img data-ph="${esc(id)}" src="${thumbs[id]||"data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="}" style="${st}">`).join("")}</div>
+ <div class="row"><button class="${gOK()?"":"pri"}" id="pa" ${n>=PHMAX&&gOK()?"disabled":""}>${gOK()?"＋ 写真を追加":"Googleにログイン"}</button></div>
+ <input id="pf" type="file" accept="image/*" multiple hidden><div class="note" id="pm">${n?"写真を押すと全画面で見られます。":"写真はGoogleドライブの「琵琶湖釣行写真」フォルダに保存されます。"}</div></div>`;
+ const msg=x=>{const m=$("#pm");if(m)m.textContent=x};
+ if(!gReady())gLoad().catch(()=>{});
+ $("#pa").onclick=()=>{if(!gOK()){gAuth().then(again,e=>msg(e.message));return}$("#pf").click()};
+ $("#pf").onchange=async function(){const fs=[...this.files].slice(0,PHMAX-t.photos.length);if(!fs.length)return;
+  try{if(!gOK())await gAuth();let k=0;for(const f of fs){k++;msg(`保存中… ${k}/${fs.length}`);
+   const full=await shrink(f,1600,.8),th=await b2url(await shrink(f,240,.6)),id=await gUpload(full,(t.date||"photo")+"_"+Date.now().toString(36)+".jpg");
+   idbPut(id,full);thumbs[id]=th;saveThumbs();t.photos.push(id);saveTrips()}
+   again()}catch(e){msg("失敗: "+e.message);saveTrips();setTimeout(again,2500)}};
+ box.querySelectorAll("img[data-ph]").forEach(im=>{const id=im.dataset.ph;im.onclick=()=>photoView(t,id,again);
+  if(!large&&thumbs[id])return;
+  photoBlob(id).then(b=>{if(!b)return;if(large)im.src=URL.createObjectURL(b);if(!thumbs[id])shrink(b,240,.6).then(b2url).then(u=>{thumbs[id]=u;saveThumbs();if(!large)im.src=u})}).catch(()=>{})})}
+async function photoView(t,id,again){try{let b=await idbGet(id);if(!b){if(!gOK())await gAuth();b=await photoBlob(id)}
+ const ov=document.createElement("div");ov.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:99;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px";
+ ov.innerHTML=`<div id="pvm" style="color:#fff;margin-bottom:8px"></div><img id="pvi" style="max-width:100%;max-height:72vh;border-radius:6px"><div class="row" style="margin-top:12px"><button id="pvc">閉じる</button><button id="pvd">削除</button></div>`;
+ document.body.appendChild(ov);const url=URL.createObjectURL(b);ov.querySelector("#pvi").src=url;const close=()=>{URL.revokeObjectURL(url);ov.remove()};
+ ov.querySelector("#pvc").onclick=close;
+ ov.querySelector("#pvd").onclick=async()=>{if(!confirm("この写真を削除しますか?(Googleドライブからも消えます)"))return;
+  try{if(!gOK())await gAuth();await gDel(id);t.photos=t.photos.filter(x=>x!==id);trips.forEach(x=>{if(x.photos)x.photos=x.photos.filter(p=>p!==id)});delete thumbs[id];idbDel(id);saveThumbs();saveTrips();close();again()}catch(e){ov.querySelector("#pvm").textContent=e.message}}
+}catch(e){alert(e.message)}}
+/* ===== 釣果・タックル ===== */
+const SPL=["オオクチバス","コクチバス","ブルーギル","ナマズ","ニゴイ","ビワマス","ハス","ゲンゴロウブナ","コイ","サゴシ","シーバス","クロダイ","アジ","メバル","カサゴ"];
+const newFish=()=>({sp:"",n:1,mode:"each",sz:[{len:"",w:"",wu:"g"}]});
+function fixFish(f){f.n=Math.max(1,Math.min(30,parseInt(f.n)||1));if(f.n<=1)f.mode="each";const L=f.mode==="max"||f.n<=1?1:f.n;f.sz=Array.isArray(f.sz)?f.sz:[];while(f.sz.length<L)f.sz.push({len:"",w:"",wu:f.sz.length?f.sz[0].wu:"g"});f.sz.length=L}
+const cleanFish=a=>(Array.isArray(a)?a:[]).filter(f=>f&&String(f.sp||"").trim()).slice(0,20).map(f=>{const n=Math.max(1,Math.min(30,parseInt(f.n)||1)),mode=n>1&&f.mode==="max"?"max":"each",L=mode==="max"||n<=1?1:n,sz=[];for(let j=0;j<L;j++){const z=(Array.isArray(f.sz)&&f.sz[j])||{};sz.push({len:String(z.len||"").trim(),w:String(z.w||"").trim(),wu:["g","kg","oz"].includes(z.wu)?z.wu:"g"})}return{sp:String(f.sp).trim(),n,mode,sz}});
+const cleanTk=k=>{k=k||{};const o={};["reel","rod","lt","ls","ld","lds","lure"].forEach(x=>o[x]=String(k[x]||"").trim());return o};
+const szTxt=z=>[z.len?z.len+"cm":"",z.w?z.w+z.wu:""].filter(Boolean).join(" ");
+const maxLen=f=>{const m=(f.sz||[]).map(z=>parseFloat(z.len)).filter(x=>x>0);return m.length?Math.max(...m):0};
+const fishSum=t=>(t.fish||[]).map(f=>esc(f.sp)+" "+f.n+"本"+(maxLen(f)?"(最大"+maxLen(f)+"cm)":"")).join("、");
+const tkHist=k=>[...new Set(trips.map(t=>t.tk&&t.tk[k]).filter(Boolean))];
+function fishBlock(){return tf.fish.map((f,i)=>`<div class="card" style="margin:8px 0;padding:10px"><div class="row" style="align-items:flex-end"><label>魚種<input data-k="sp" data-i="${i}" list="spl" value="${esc(f.sp)}" placeholder="例: オオクチバス"></label><label style="max-width:84px">本数<input data-k="n" data-i="${i}" type="number" min="1" max="30" inputmode="numeric" value="${f.n}"></label><button data-del="${i}">削除</button></div>
+ ${f.n>1?`<div class="row"><button class="pl ${f.mode==="max"?"":"pri"}" data-md="each" data-i="${i}">全部入力</button><button class="pl ${f.mode==="max"?"pri":""}" data-md="max" data-i="${i}">最大のみ</button></div>`:""}
+ ${f.sz.map((z,j)=>`<div class="row" style="align-items:flex-end"><span style="min-width:40px">${f.n<=1?"サイズ":f.mode==="max"?"最大":"#"+(j+1)}</span><label>長さ(cm)<input data-k="len" data-i="${i}" data-j="${j}" type="number" step="0.5" inputmode="decimal" value="${esc(z.len)}"></label><label>重さ<input data-k="w" data-i="${i}" data-j="${j}" type="number" step="any" inputmode="decimal" value="${esc(z.w)}"></label><label style="max-width:76px">単位<select data-k="wu" data-i="${i}" data-j="${j}">${["g","kg","oz"].map(u=>`<option ${z.wu===u?"selected":""}>${u}</option>`).join("")}</select></label></div>`).join("")}</div>`).join("")+`<div class="row"><button id="fadd">＋ 魚種を追加</button></div>`}
+function tackleBlock(){const k=tf.tk,I=(key,lab,ph,lst)=>`<div class="row"><label>${lab}<input data-t="${key}" ${lst?`list="${lst}"`:""} value="${esc(k[key]||"")}" placeholder="${ph||""}"></label></div>`;
+ const B=(attr,v,cur)=>`<button class="pl ${cur===v?"pri":""}" data-${attr}="${v}">${v}</button>`;
+ return I("reel","リール","例: ステラ C3000","dlr")+I("rod","ロッド","例: ○○ 6.8ft","dld")+`<div class="note">ライン</div><div class="row">${["ナイロン","フロロ","PE"].map(v=>B("lt",v,k.lt)).join("")}<label style="max-width:150px"><input data-t="ls" value="${esc(k.ls||"")}" placeholder="号数・lb"></label></div>`
+ +(k.lt==="PE"?`<div class="note">リーダー</div><div class="row">${["フロロ","ナイロン"].map(v=>B("ld",v,k.ld)).join("")}<label style="max-width:150px"><input data-t="lds" value="${esc(k.lds||"")}" placeholder="号数・lb"></label></div>`:"")+I("lure","ルアー(複数は「、」で区切る)","例: ポップアップジグ 40g","dll")}
+function formExtra(el){
+ const fb=$("#ffish"),tb=$("#ftk"),rf=()=>{fb.innerHTML=fishBlock()},rt=()=>{tb.innerHTML=tackleBlock()};rf();rt();
+ $("#ft1").oninput=function(){tf.tm.a=this.value};$("#ft2").oninput=function(){tf.tm.b=this.value};
+ fb.oninput=e=>{const d=e.target.dataset;if(!d.k)return;const f=tf.fish[+d.i];if(!f)return;if(d.k==="sp")f.sp=e.target.value;else if(d.k==="n")f.n=e.target.value;else if(d.k!=="wu"){const z=f.sz[+d.j];if(z)z[d.k]=e.target.value}};
+ fb.onchange=e=>{const d=e.target.dataset;if(!d.k)return;const f=tf.fish[+d.i];if(!f)return;if(d.k==="n"){fixFish(f);rf()}else if(d.k==="wu"){const z=f.sz[+d.j];if(z)z.wu=e.target.value}};
+ fb.onclick=e=>{const b=e.target.closest&&e.target.closest("button");if(!b)return;
+  if(b.dataset.del!==undefined){tf.fish.splice(+b.dataset.del,1);rf()}
+  else if(b.dataset.md){const f=tf.fish[+b.dataset.i];f.mode=b.dataset.md;fixFish(f);rf()}
+  else if(b.id==="fadd"){tf.fish.push(newFish());rf()}};
+ tb.oninput=e=>{const k=e.target.dataset.t;if(k)tf.tk[k]=e.target.value};
+ tb.onclick=e=>{const b=e.target.closest&&e.target.closest("button");if(!b)return;
+  if(b.dataset.lt){tf.tk.lt=tf.tk.lt===b.dataset.lt?"":b.dataset.lt;if(tf.tk.lt!=="PE"){tf.tk.ld="";tf.tk.lds=""}rt()}
+  else if(b.dataset.ld){tf.tk.ld=tf.tk.ld===b.dataset.ld?"":b.dataset.ld;rt()}};
+ photoUI(tf,"#fph",false)}
+function tkHtml(t){const k=t.tk||{},P=[];
+ if(k.reel)P.push("リール: "+esc(k.reel));if(k.rod)P.push("ロッド: "+esc(k.rod));
+ if(k.lt||k.ls)P.push("ライン: "+esc((k.lt||"")+" "+(k.ls||"")).trim());
+ if(k.lt==="PE"&&(k.ld||k.lds))P.push("リーダー: "+esc((k.ld||"")+" "+(k.lds||"")).trim());
+ if(k.lure)P.push("ルアー: "+esc(k.lure));
+ return P.length?`<div class="note" style="margin-top:6px">🧰 ${P.join("<br>")}</div>`:""}
+const tEnd=t=>t.end&&t.end>=t.date?t.end:t.date;
+const tDays=t=>{const a=[];let d=t.date;for(let i=0;i<120&&d<=tEnd(t);i++){a.push(d);d=dstr(d,1)}return a};
+const tripOn=d=>trips.filter(t=>t.date<=d&&d<=tEnd(t));
+const isBw=t=>t.area!=="other";
+const spotLabel=t=>isBw(t)?((t.spots||[]).map(esc).join("、")||"琵琶湖(場所の指定なし)"):"その他: "+esc(t.place||"場所未入力");
+const rangeLabel=t=>t.end&&t.end>t.date?`${md(t.date)}〜${md(t.end)}(${tDays(t).length}日間)`:md(t.date);
+function yearStats(){const Y={};
+ trips.forEach(t=>{const y=t.date.slice(0,4),o=(Y[y]=Y[y]||{n:0,all:new Set(),bw:new Set(),ot:new Set()});o.n++;});
+ trips.forEach(t=>tDays(t).forEach(d=>{const o=(Y[d.slice(0,4)]=Y[d.slice(0,4)]||{n:0,all:new Set(),bw:new Set(),ot:new Set()});o.all.add(d);(isBw(t)?o.bw:o.ot).add(d)}));
+ return Object.keys(Y).sort().reverse().map(y=>({y,n:Y[y].n,all:Y[y].all.size,bw:Y[y].bw.size,ot:Y[y].ot.size}))}
+function catchCard(){
+ const W=z=>{const v=parseFloat(z.w);if(!(v>0))return 0;return z.wu==="kg"?v*1000:z.wu==="oz"?v*28.35:v};
+ const S={},M=Array(12).fill(0),rs=all();let tot=0,td=new Set();
+ trips.forEach(t=>(t.fish||[]).forEach(f=>{const o=(S[f.sp]=S[f.sp]||{n:0,d:new Set(),ml:0,mw:0,mlD:"",mwD:"",c:[]});o.n+=f.n;o.d.add(t.date);tot+=f.n;td.add(t.date);M[+t.date.slice(5,7)-1]+=f.n;
+  (f.sz||[]).forEach(z=>{const l=parseFloat(z.len)||0,w=W(z);if(l>o.ml){o.ml=l;o.mlD=t.date}if(w>o.mw){o.mw=w;o.mwD=t.date}});
+  if(isBw(t)){const tp=dayAvg(rs,"temp",t.date),lv=dayAvg(rs,"level",t.date,"琵琶湖(平均)")??dayAvg(rs,"level",t.date,"雄琴沖"),cl=lclimAt(new Date(t.date+"T12:00").getTime(),"r10");
+   o.c.push({n:f.n,tp,dl:lv!=null&&cl?(lv-cl.m)*100:null})}}));
+ const sp=Object.keys(S).sort((a,b)=>S[b].n-S[a].n);
+ if(!sp.length)return`<div class="card"><b>釣果の集計</b><p class="note">釣果(魚種と本数)を記録すると、ここに集計が出ます。</p></div>`;
+ const mx=Math.max(...M,1),wt=g=>g>=1000?(g/1000).toFixed(2).replace(/\.?0+$/,"")+"kg":Math.round(g)+"g";
+ const avg=(c,k)=>{const q=c.filter(x=>x[k]!=null);const n=q.reduce((a,x)=>a+x.n,0);return q.length>=3&&n?{v:q.reduce((a,x)=>a+x[k]*x.n,0)/n,d:q.length}:null};
+ let h=`<div class="card"><b>釣果の集計</b><p class="note">${td.size}日・合計${tot}本(釣果を記録した釣行のみ)</p>
+ <div class="lbl">魚種別</div><table><tr><th>魚種</th><th class="n">本数</th><th class="n">日数</th><th>最大</th></tr>`
+ +sp.map(k=>{const o=S[k];return`<tr><td>${esc(k)}</td><td class="n">${o.n}</td><td class="n">${o.d.size}</td><td>${o.ml?o.ml+"cm":""}${o.ml&&o.mw?" / ":""}${o.mw?wt(o.mw):""}${!o.ml&&!o.mw?"–":""}</td></tr>`}).join("")+`</table>
+ <div class="lbl" style="margin-top:8px">月別の本数</div>`
+ +M.map((v,i)=>v?`<div style="display:flex;align-items:center;gap:6px;margin:1px 0"><span style="width:34px">${i+1}月</span><span style="height:10px;border-radius:5px;background:var(--ac);width:${Math.max(4,v/mx*60)}%"></span><span class="note">${v}</span></div>`:"").join("")
+ +`<div class="lbl" style="margin-top:8px">釣れた日の条件(琵琶湖の釣行のみ)</div>`;
+ const cs=sp.map(k=>{const t=avg(S[k].c,"tp"),d=avg(S[k].c,"dl");return t||d?`<div style="margin:3px 0"><b>${esc(k)}</b>　${t?"水温 平均"+t.v.toFixed(1)+"℃":""}${t&&d?"・":""}${d?"水位 平年比"+(d.v>=0?"+":"")+d.v.toFixed(0)+"cm":""}<span class="note">(${(t||d).d}日分)</span></div>`:""}).join("");
+ h+=cs||'<p class="note">データが足りません。水温・水位のある日の釣果が3日分たまると表示されます。</p>';
+ return h+`<p class="note">本数で重みをつけた平均です。水温は観測地点の平均、水位は直近10年の平年との差です。</p></div>`}
+function trip(){
+ const el=$("#v-trip");
+ if(tripEdit!==null){const t=tf,ot=t.area==="other";tf.fish=Array.isArray(tf.fish)?tf.fish:[];tf.tk=tf.tk||{};tf.tm=tf.tm||{};tf.photos=tf.photos||[];tf.fish.forEach(fixFish);
+  el.innerHTML=`<div class="card"><b>${tripEdit==="new"?"釣行を追加":"釣行を編集"}</b>
+  <div class="row" style="margin-top:8px"><label>開始日<input id="fd" type="date" value="${t.date}"></label><label>終了日(日帰りは空欄)<input id="fe" type="date" value="${t.end||""}"></label></div>
+  <div class="note">釣り場</div>
+  <div class="row"><button class="pl ${ot?"":"pri"}" data-a="bw">琵琶湖</button><button class="pl ${ot?"pri":""}" data-a="other">その他</button></div>
+  <div id="fbw" ${ot?"hidden":""}><div class="note">行った場所(複数選べます)</div>
+  <div class="row">${WXP.map(p=>`<button class="pl" data-s="${esc(p[0])}" style="border-color:var(--ac);${t.spots.includes(p[0])?"background:var(--ac);color:#fff":""}">${esc(p[0])}</button>`).join("")}</div>
+  <div class="row"><label>琵琶湖のその他の場所(自由入力。「、」で区切る)<input id="fo" value="${esc(t.other||"")}"></label></div></div>
+  <div id="fot" ${ot?"":"hidden"}><div class="row"><label>場所(手入力)<input id="fp" value="${esc(t.place||"")}" placeholder="例: 大阪湾、紀の川"></label></div></div>
+  <div class="note">釣行時間</div><div class="row"><label>開始<input id="ft1" type="time" value="${esc(t.tm.a||"")}"></label><label>終了<input id="ft2" type="time" value="${esc(t.tm.b||"")}"></label></div>
+  <div class="note">釣果</div><div id="ffish"></div>
+  <div class="note">タックル</div><div id="ftk"></div>
+  <datalist id="spl">${[...new Set(SPL.concat(trips.flatMap(x=>(x.fish||[]).map(f=>f.sp))))].map(v=>`<option value="${esc(v)}">`).join("")}</datalist><datalist id="dlr">${tkHist("reel").map(v=>`<option value="${esc(v)}">`).join("")}</datalist><datalist id="dld">${tkHist("rod").map(v=>`<option value="${esc(v)}">`).join("")}</datalist><datalist id="dll">${tkHist("lure").map(v=>`<option value="${esc(v)}">`).join("")}</datalist>
+  <div class="note">写真</div><div id="fph"></div>
+  <div class="row"><label>釣果ひとこと(任意)<input id="fc" value="${esc(t.catch||"")}"></label></div>
+  <label class="lbl">メモ(任意)<textarea id="fm" rows="3">${esc(t.memo||"")}</textarea></label>
+  <div class="row"><button class="pri" id="fs">保存</button><button id="fx">キャンセル</button></div></div>`;
+  el.querySelectorAll("button[data-s]").forEach(b=>b.onclick=()=>{const s=b.dataset.s,i=tf.spots.indexOf(s);if(i<0)tf.spots.push(s);else tf.spots.splice(i,1);const on=tf.spots.includes(s);b.style.background=on?"var(--ac)":"";b.style.color=on?"#fff":""});
+  el.querySelectorAll("button[data-a]").forEach(b=>b.onclick=()=>{tf.area=b.dataset.a;const o=tf.area==="other";$("#fbw").hidden=o;$("#fot").hidden=!o;el.querySelectorAll("button[data-a]").forEach(x=>x.classList.toggle("pri",x.dataset.a===tf.area))});
+  formExtra(el);
+  $("#fx").onclick=()=>{tripEdit=null;trip()};
+  $("#fs").onclick=()=>{const date=$("#fd").value;if(!date)return;let end=$("#fe").value||"";if(end<=date)end="";
+   const o2=tf.area==="other",oth=($("#fo").value||"").split(/[、,]/).map(x=>x.trim()).filter(Boolean),sp=o2?[]:[...new Set(tf.spots.concat(oth))];
+   const o={id:tf.id||Date.now().toString(36),date,end,area:o2?"other":"bw",place:o2?($("#fp").value||"").trim():"",spots:sp,catch:$("#fc").value.trim(),memo:$("#fm").value.trim(),photos:tf.photos||[],fish:cleanFish(tf.fish),tk:cleanTk(tf.tk),tm:{a:tf.tm.a||"",b:tf.tm.b||""}};
+   const i=trips.findIndex(x=>x.id===o.id);if(i<0)trips.push(o);else trips[i]=o;saveTrips();tripEdit=null;tripSel=o.id;tv=null;trip()};
+  return}
+ if(tripSel){const t=trips.find(x=>x.id===tripSel);if(!t){tripSel=null;return trip()}
+  const e0=tEnd(t),bw=isBw(t),days=tDays(t),head0=`<div class="card"><div class="row"><button id="tb">← 一覧</button><span style="flex:1"></span><button id="te">編集</button><button id="td">削除</button></div></div><div id="tph"></div><div class="card">
+  <div style="font-size:18px"><b>${rangeLabel(t)}</b> ${t.date.slice(0,4)}年</div>
+  <div style="margin-top:4px">📍 ${spotLabel(t)}</div>
+  ${t.tm&&(t.tm.a||t.tm.b)?`<div style="margin-top:4px">⏰ ${esc(t.tm.a||"?")}〜${esc(t.tm.b||"?")}</div>`:""}
+  ${(t.fish||[]).map(f=>`<div style="margin-top:6px">🐟 <b>${esc(f.sp)}</b> ${f.n}本${(f.sz||[]).some(z=>szTxt(z))?`<div class="note">${f.sz.map((z,j)=>szTxt(z)?(f.n<=1?"":(f.mode==="max"?"最大 ":"#"+(j+1)+" "))+szTxt(z):"").filter(Boolean).join(" ／ ")}</div>`:""}</div>`).join("")}
+  ${t.catch?`<div style="margin-top:4px">🎣 ${esc(t.catch)}</div>`:""}
+  ${tkHtml(t)}${t.memo?`<div class="note" style="margin-top:4px;white-space:pre-wrap">${esc(t.memo)}</div>`:""}</div>`;
+  const head=head0;
+  const bind=()=>{photoUI(t,"#tph",true);
+   $("#tb").onclick=()=>{tripSel=null;tv=null;trip()};
+   $("#te").onclick=()=>{tf={id:t.id,date:t.date,end:t.end||"",area:t.area==="other"?"other":"bw",place:t.place||"",spots:(t.spots||[]).filter(x=>WXP.some(p=>p[0]===x)),other:(t.spots||[]).filter(x=>!WXP.some(p=>p[0]===x)).join("、"),catch:t.catch||"",memo:t.memo||"",photos:(t.photos||[]).slice(),fish:JSON.parse(JSON.stringify(t.fish||[])),tk:Object.assign({},t.tk),tm:Object.assign({},t.tm)};tripEdit=t.id;trip()};
+   $("#td").onclick=()=>{if(confirm("この釣行記録を削除しますか?")){trips=trips.filter(x=>x.id!==t.id);saveTrips();tripSel=null;tv=null;trip()}}};
+  if(!bw){let rows="";days.forEach(d=>{rows+=`<tr class="hl"><td>${md(d)} 釣行</td><td>${tideOf(d)}</td></tr>`});
+   el.innerHTML=head+`<div class="card scroll"><b>釣行日の潮名</b><table><tr><th>日付</th><th>潮</th></tr>${rows}</table><p class="note">琵琶湖以外の場所では、天気・水温などのデータは表示しません。潮名は月齢から計算した目安です。</p></div>`;bind();return}
+  if(wxNeed())loadWx();[t.date,dstr(t.date,-5),dstr(e0,2)].forEach(d=>loadWxHr(+d.slice(0,4)));
+  const pls=tripPlaces(t);if(!pls.includes(tripPl))tripPl=pls[0];
+  const rs=all();let rows="";
+  for(let d=dstr(t.date,-5),g0=0;d<=dstr(e0,2)&&g0<130;d=dstr(d,1),g0++){const on=d>=t.date&&d<=e0,g=dayAgg(tripPl,d),lv=dayAvg(rs,"level",d,"琵琶湖(平均)")??dayAvg(rs,"level",d,"雄琴沖"),fl=dayAvg(rs,"flow",d);
+   rows+=`<tr class="${on?"hl":""}"><td>${md(d)}${on?" 釣行":""}</td><td>${tideOf(d)}</td><td>${g.code==null?"–":WXE(g.code)+" "+WXN(g.code)}</td><td class="n">${g.precip==null?"–":f1(g.precip)+"mm"}</td><td>${g.dir==null?"–":arrow(g.dir)+" "+dirN(g.dir)}</td><td class="n">${f1(g.wmax)}</td><td class="n">${g.tmin==null?"–":Math.round(g.tmin)+"〜"+Math.round(g.tmax)+"℃"}</td><td class="n">${lv==null?"–":lv.toFixed(2)}</td><td class="n">${fl==null?"–":fl.toFixed(0)}</td></tr>`}
+  el.innerHTML=head+`<div class="card scroll"><b>天気(5日前〜釣行後2日)</b><div class="row" style="margin:6px 0">${pls.map(p=>`<button class="pl ${p===tripPl?"pri":""}" data-p="${esc(p)}">${esc(p)}</button>`).join("")}</div>
+  <table><tr><th>日付</th><th>潮</th><th>天気</th><th class="n">雨量</th><th>風向</th><th class="n">最大風速</th><th class="n">気温</th><th class="n">水位</th><th class="n">放流量</th></tr>${rows}</table>
+  <p class="note">雨量は1日の合計(mm)、風速はm/s、水位は琵琶湖の1日の平均(m)、放流量は手入力の値(m³/s)です。データがない日は「–」です。${wxD||Object.keys(wxHr).length?"":" 天気を読み込み中…"}</p></div>
+  <div id="tchart"></div>`;
+  bind();
+  el.querySelectorAll("button[data-p]").forEach(b=>b.onclick=()=>{tripPl=b.dataset.p;trip()});
+  if(!tv||tv.tid!==t.id)tv={tid:t.id,cm:"temp",rng:"c",cs:dstr(t.date,-5),ce:dstr(e0,2),yr:{},base:view.base,hide:[]};
+  const root=$("#tchart"),op={P:"t",fixed:true,band:[new Date(t.date+"T00:00").getTime(),new Date(e0+"T23:59").getTime()],save:()=>{},rerender:()=>chartRender(root,tv,op)};
+  chartRender(root,tv,op);return}
+ const L=trips.slice().sort((a,b)=>a.date<b.date?1:a.date>b.date?-1:0),ST=yearStats();
+ if(L.length&&wxNeed())loadWx();if(L.length)[...new Set(L.filter(isBw).map(t=>+t.date.slice(0,4)))].forEach(loadWxHr);
+ el.innerHTML=`<div class="card"><div class="row"><b style="flex:1;font-size:17px">釣行の記録</b><button class="pri" id="tn">＋ 追加</button></div>
+  <p class="note">記録はこの端末のブラウザにだけ保存されます。バックアップは下から書き出せます。</p>
+  ${ST.length?`<div class="lbl">年間の釣行日数</div>`+ST.map(x=>`<div style="margin:2px 0"><b>${x.y}年</b>　<b style="font-size:18px">${x.all}</b>日　<span class="note">釣行${x.n}回(琵琶湖 ${x.bw}日・その他 ${x.ot}日)</span></div>`).join("")+`<div style="height:6px"></div>`:""}
+  ${L.length?L.map(t=>{const bw=isBw(t),g=bw?dayAgg(tripPlaces(t)[0],t.date):null;
+   return`<div class="trow" data-id="${t.id}">${t.photos&&t.photos[0]&&thumbs[t.photos[0]]?`<img src="${thumbs[t.photos[0]]}" style="float:right;width:56px;height:56px;object-fit:cover;border-radius:8px;margin-left:8px">`:""}<b>${rangeLabel(t)}</b> ${t.date.slice(0,4)}　${tideOf(t.date)}<br>📍 ${spotLabel(t)}
+   <div class="note">${bw?(g.code==null?"天気データなし":`${WXE(g.code)} ${WXN(g.code)}・雨${f1(g.precip)}mm・${g.dir==null?"":dirN(g.dir)+" "}最大${f1(g.wmax)}m/s`):""}${fishSum(t)?"　🐟 "+fishSum(t):""}${t.catch?"　🎣 "+esc(t.catch):""}</div></div>`}).join(""):'<p class="note">まだ記録がありません。「＋ 追加」から登録できます。</p>'}</div>
+  ${(()=>{try{return catchCard()}catch(e){return""}})()}<div class="card"><b>バックアップ</b><p class="note">釣行の記録を文字として書き出し・読み込みできます。書き出した文字は、メモアプリなどに保存してください。</p>
+  <div class="row"><button id="xb">書き出す</button><button id="ib">読み込む</button></div><textarea id="xt" rows="5"></textarea><div class="row"><button id="xo" class="pri" hidden>取り込む</button></div></div>`;
+ $("#tn").onclick=()=>{tf={id:"",date:nowStr().slice(0,10),end:"",area:"bw",place:"",spots:[],other:"",catch:"",memo:""};tripEdit="new";trip()};
+ el.querySelectorAll(".trow").forEach(e=>e.onclick=()=>{tripSel=e.dataset.id;tv=null;trip();scrollTo(0,0)});
+ const xt=$("#xt");
+ $("#xb").onclick=()=>{xt.value=JSON.stringify(trips);$("#xo").hidden=true;xt.select()};
+ $("#ib").onclick=()=>{xt.value="";xt.placeholder="ここに書き出した文字を貼って、「取り込む」を押してください";$("#xo").hidden=false;xt.focus()};
+ $("#xo").onclick=()=>{try{const a=JSON.parse(xt.value);if(!Array.isArray(a))throw 0;let n=0;const have=new Set(trips.map(t=>t.id)),ok=x=>/^\d{4}-\d\d-\d\d$/.test(x||"");
+  a.forEach(t=>{if(t&&t.id&&ok(t.date)&&!have.has(t.id)){trips.push({id:String(t.id),date:t.date,end:ok(t.end)?t.end:"",area:t.area==="other"?"other":"bw",place:String(t.place||""),spots:Array.isArray(t.spots)?t.spots.map(String):[],catch:String(t.catch||""),memo:String(t.memo||""),photos:Array.isArray(t.photos)?t.photos.map(String):[],fish:cleanFish(t.fish),tk:cleanTk(t.tk),tm:{a:String((t.tm&&t.tm.a)||""),b:String((t.tm&&t.tm.b)||"")}});have.add(t.id);n++}});
+  saveTrips();alert(n+" 件を取り込みました");trip()}catch(e){alert("読み込めませんでした。書き出した文字をそのまま貼ってください")}};
+}
+let ntA=null,ntTry=0,ntErr="";const ntOpen=new Set();let ntLastK="";
+async function loadAlerts(){ntTry=Date.now();try{const r=await fetch("data/alerts.json?t="+Date.now());if(!r.ok)throw new Error(r.status);ntA=await r.json();ntErr=""}catch(e){ntErr="警報・注意報のデータをまだ読み込めません"}if(tab==="nt")notice();else renderTabs()}
+function ntForecast(){const o=[];if(!wxD)return o;const i0=nowIdx(),H=wxD.map(d=>d.hourly),T=WXP.map(p=>p[0]);
+ const sum=(h,a,b)=>{let t=0;for(let i=Math.max(0,a);i<b&&i<h.precipitation.length;i++)t+=h.precipitation[i]||0;return t};
+ const mx=(h,k,a,b)=>{let m=0,at=-1;for(let i=Math.max(0,a);i<b&&i<h[k].length;i++){const v=h[k][i]||0;if(v>m){m=v;at=i}}return{m,at}};
+ const tm=(h,i)=>{const t=h.time[i];return t?(t.slice(5,10).replace("-","/")+" "+t.slice(11,13)+"時"):""};
+ const names=a=>a.slice(0,3).join("・")+(a.length>3?" ほか":"");
+ const R=H.map((h,k)=>({k,f:sum(h,i0,i0+24),p:sum(h,i0-24,i0+1),pk:mx(h,"precipitation",i0,i0+24),g:mx(h,"wind_gusts_10m",i0,i0+24),w:mx(h,"wind_speed_10m",i0,i0+24),th:h.weather_code.slice(i0,i0+24).findIndex(c=>c>=95)}));
+ const top=(arr,f)=>arr.slice().sort((a,b)=>f(b)-f(a));
+ const fr=top(R,x=>x.f)[0];if(fr.f>=50)o.push({lv:2,ic:"🌧",t:"大雨のおそれ(今後24時間)",d:`多いところで合計${fr.f.toFixed(0)}mm(${T[fr.k]})。河川の増水・濁りで釣りに影響が出やすく、岸際や河口は危険です。`});
+ else if(fr.f>=20)o.push({lv:1,ic:"🌧",t:"まとまった雨(今後24時間)",d:`多いところで合計${fr.f.toFixed(0)}mm(${T[fr.k]})。流入河川の濁りに注意。`});
+ const pk=top(R,x=>x.pk.m)[0];if(pk.pk.m>=20)o.push({lv:2,ic:"⛈",t:"激しい雨",d:`1時間${pk.pk.m.toFixed(0)}mmの予報(${T[pk.k]}・${tm(H[pk.k],pk.pk.at)}ごろ)。`});
+ else if(pk.pk.m>=10)o.push({lv:1,ic:"🌦",t:"強めの雨",d:`1時間${pk.pk.m.toFixed(0)}mmの予報(${T[pk.k]}・${tm(H[pk.k],pk.pk.at)}ごろ)。`});
+ const pr=top(R,x=>x.p)[0];if(pr.p>=50)o.push({lv:1,ic:"🟤",t:"大雨のあと(直近24時間)",d:`多いところで${pr.p.toFixed(0)}mmの雨が降りました(${T[pr.k]})。川の増水や濁り、水位上昇が出ている可能性があります。`});
+ const g=top(R,x=>x.g.m)[0];if(g.g.m>=15)o.push({lv:2,ic:"💨",t:"強風(突風15m/s以上)",d:`${T[g.k]}で最大${g.g.m.toFixed(0)}m/s(${tm(H[g.k],g.g.at)}ごろ)。出船や岸釣りは危険です。`});
+ else if(g.g.m>=10)o.push({lv:1,ic:"💨",t:"風が強め(突風10m/s以上)",d:`${T[g.k]}で最大${g.g.m.toFixed(0)}m/s(${tm(H[g.k],g.g.at)}ごろ)。波が立ちやすくなります。`});
+ const th=R.filter(x=>x.th>=0);if(th.length){const f=th.sort((a,b)=>a.th-b.th)[0];o.push({lv:2,ic:"⚡",t:"雷の予報",d:`${names(th.map(x=>T[x.k]))}で雷雨の予報(${tm(H[f.k],i0+f.th)}ごろから)。湖上・岸の釣りは避けてください。`})}
+ return o.sort((a,b)=>b.lv-a.lv)}
+const RIV=[{n:"野洲川 野洲",d:"野洲川",g:"湖東〜野洲",t:[2.5,3.5,4.3,4.8]},{n:"姉川 国友橋",d:"姉川",g:"湖北〜彦根",t:[1.0,1.6,1.8,2.1]},{n:"安曇川 常安橋",d:"安曇川",g:"湖西",t:[1.0,1.5,1.9,2.3]},
+{n:"愛知川 葉枝見橋",d:"愛知川",g:"湖東〜野洲",t:[2.5,3.5]},{n:"日野川 仁保橋",d:"日野川",g:"湖東〜野洲",t:[-0.17,0.93]},{n:"犬上川 千鳥橋",d:"犬上川",g:"湖北〜彦根",t:[0.8,1.7,2.0,2.3]},{n:"芹川 芹川旭橋",d:"芹川(滋賀県立大寮横)",g:"湖北〜彦根",t:[0.7,0.9,1.0,1.4]},{n:"宇曽川 金沢大橋",d:"宇曽川",g:"湖北〜彦根",t:[1.5,2.5,2.9,3.7]},{n:"天野川 天野川橋",d:"天野川",g:"湖北〜彦根",t:[0.8,1.2,1.4,1.6]},{n:"石田川 岸脇",d:"石田川",g:"湖西",t:[1.8,2.1]},{n:"知内川 知内川",d:"知内川",g:"湖西",t:[1.0,1.3]},{n:"百瀬川 百瀬川",d:"百瀬川",g:"湖西",t:[]},{n:"和邇川 和邇川",d:"和邇川",g:"湖西",t:[1.2,2.0]},{n:"真野川 真野川",d:"真野川",g:"湖西",t:[0.7,1.3]},{n:"白鳥川 JR下流橋",d:"白鳥川",g:"湖東〜野洲",t:[]},{n:"矢倉川 高根橋",d:"矢倉川(彦根ココス横)",g:"湖北〜彦根",t:[]},{n:"大川 岩熊橋",d:"大川",g:"湖北〜彦根",t:[0.6,1.2]},{n:"大浦川 大浦黒山橋",d:"大浦川",g:"湖北〜彦根",t:[2.0,2.5]},{n:"滝川 JR上流橋",d:"滝川(北小松)",g:"湖西",t:[]},{n:"葉山川 上鈎池橋",d:"葉山川",g:"南湖",t:[0.53,0.95]},{n:"草津川 西矢倉",d:"草津川(帰帆島裏)",g:"南湖",t:[2.3,3.1,3.4,4.3]},{n:"十禅寺川 南田山",d:"十禅寺川(帰帆島裏)",g:"南湖",t:[]}],rvName=n=>(RIV.find(r=>r.n===n)||{}).d||n,rvOpen=new Set(),RGR=["湖北〜彦根","湖東〜野洲","湖西","南湖"],RLV=["水防団待機水位","氾濫注意水位","避難判断水位","氾濫危険水位"];
+let rvD=null,rvTry=0;
+async function loadRivers(){rvTry=Date.now();try{const r=await fetch("data/rivers.csv?t="+Date.now());if(!r.ok)throw new Error(r.status);const ls=(await r.text()).trim().split(/\r?\n/);ls.shift();const o={};ls.forEach(l=>{const c=l.split(",");if(c.length<3)return;const v=parseFloat(c[2]);if(isNaN(v))return;(o[c[1]]=o[c[1]]||[]).push({t:c[0],v})});Object.values(o).forEach(a=>a.sort((x,y)=>x.t<y.t?-1:x.t>y.t?1:0));rvD=o}catch(e){rvD=rvD||{}}if(tab==="nt")notice();else if(tab==="chart")rvChart();else renderTabs()}
+const rvMs=t=>new Date(t+":00").getTime();
+function rvInfo(){return RIV.map(s=>{const a=(rvD&&rvD[s.n])||[];if(!a.length)return Object.assign({},s,{none:true});const L=a[a.length-1],at=h=>{const lim=rvMs(L.t)-h*36e5;let b=null;for(const p of a){if(rvMs(p.t)<=lim)b=p;else break}return b},p1=at(1),p3=at(3),st=s.t.filter(x=>L.v>=x).length,mx=Math.max(...a.filter(p=>rvMs(p.t)>=rvMs(L.t)-864e5).map(p=>p.v)),bs=Math.min(...a.filter(p=>rvMs(p.t)>=rvMs(L.t)-72*36e5).map(p=>p.v));return Object.assign({},s,{L,d1:p1?L.v-p1.v:null,d3:p3?L.v-p3.v:null,st,mx,base:bs,up:L.v-bs})})}
+let rvv=(()=>{try{return JSON.parse(localStorage.getItem("bw_rvview")||"null")}catch(e){return null}})()||{};
+rvv=Object.assign({mode:"sel",sel:RIV.slice(0,3).map(r=>r.n),rng:"2",y0:"",y1:""},rvv);if(!Array.isArray(rvv.sel))rvv.sel=RIV.slice(0,3).map(r=>r.n);
+const rvSave=()=>{try{localStorage.setItem("bw_rvview",JSON.stringify(rvv))}catch(e){}};
+const rvState=r=>{if(r.none)return"";if((r.d1!=null&&r.d1>=0.05)||(r.d3!=null&&r.d3>=0.10))return"上昇中";if(r.st>=1||r.up>=0.15)return r.d3!=null&&r.d3<=-0.02?"減水中":"高水位";return""};
+const rvRising=r=>!!rvState(r);
+function rvChart(){const el=$("#rvc");if(!el)return;
+ if(rvD===null){el.innerHTML='<div class="card"><b>流入河川の水位</b><p class="note">読み込み中…</p></div>';return}
+ const R=rvInfo(),rise=R.filter(rvRising).map(r=>r.n),riseT=R.filter(rvRising).map(r=>r.d+"("+rvState(r)+")"),rise_=rvv.mode==="rise",names=rise_?rise:rvv.sel.filter(n=>R.some(r=>r.n===n&&!r.none)),lim=rvv.rng==="0"?0:Date.now()-(+rvv.rng)*864e5;
+ const S=names.map(n=>{const i=RIV.findIndex(r=>r.n===n);return{n,i,t:RIV[i].t,a:(rvD[n]||[]).filter(p=>rvMs(p.t)>=lim)}}).filter(s=>s.a.length);S.forEach((s,k)=>s.c=COL[k%COL.length]);
+ let svg='<p class="note">'+(rise_?"いま増水中の河川はありません。":"表示する河川を選んでください。")+'</p>',tip=null;
+ if(S.length){const W=640,H=240,P=44,xs=S.flatMap(s=>s.a.map(p=>rvMs(p.t))),x0=Math.min(...xs),x1=Math.max(...xs);
+  let ys=S.flatMap(s=>s.a.map(p=>p.v)),y0=Math.min(...ys),y1=Math.max(...ys);
+  S.forEach(s=>{if(s.t.length>1&&Math.max(...s.a.map(p=>p.v))>=s.t[0]-0.3)y1=Math.max(y1,s.t[1])});
+  const pd=Math.max(0.05,(y1-y0)*0.08);y0-=pd;y1+=pd;if(rvv.y0!==""&&!isNaN(+rvv.y0))y0=+rvv.y0;if(rvv.y1!==""&&!isNaN(+rvv.y1))y1=+rvv.y1;if(y1<=y0)y1=y0+1;
+  const X=v=>P+(x1===x0?.5:(v-x0)/(x1-x0))*(W-P-10),Y=v=>H-P-(v-y0)/(y1-y0)*(H-P-12);
+  svg=`<svg viewBox="0 0 ${W} ${H}"><defs><clipPath id="rvcp"><rect x="${P}" y="8" width="${W-P-10}" height="${H-P-8}"/></clipPath></defs>`+
+   [0,.5,1].map(f=>{const v=y0+(y1-y0)*f;return`<line x1="${P}" x2="${W-10}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--ln)"/><text x="${P-4}" y="${Y(v)+4}" font-size="11" text-anchor="end" fill="var(--sub)">${+v.toFixed(2)}</text>`}).join("")+
+   `<text x="${P}" y="${H-14}" font-size="11" fill="var(--sub)">${fmt(x0)}</text><text x="${W-10}" y="${H-14}" font-size="11" text-anchor="end" fill="var(--sub)">${fmt(x1)}</text><g clip-path="url(#rvcp)">`+
+   S.map(s=>{const c=s.c,ty=s.t[1];return(ty!=null&&ty>=y0&&ty<=y1?`<line x1="${P}" x2="${W-10}" y1="${Y(ty)}" y2="${Y(ty)}" stroke="${c}" stroke-dasharray="5 4" opacity=".7"/><text x="${W-12}" y="${Y(ty)-3}" font-size="10" text-anchor="end" fill="${c}">氾濫注意水位 ${ty}m</text>`:"")+
+    `<polyline fill="none" stroke="${c}" stroke-width="2" points="${s.a.map(p=>X(rvMs(p.t))+","+Y(p.v)).join(" ")}"/>`+(s.a.length<=3?s.a.map(p=>`<circle cx="${X(rvMs(p.t))}" cy="${Y(p.v)}" r="3" fill="${c}"/>`).join(""):"")}).join("")+`</g><g id="rvtip" pointer-events="none"></g></svg>`;
+  tip=(e,sv)=>{const r=sv.getBoundingClientRect(),vx=(e.clientX-r.left)/r.width*W,vy=(e.clientY-r.top)/r.height*H;let b=null,bd=1e18;
+   S.forEach(s=>s.a.forEach(p=>{const dx=X(rvMs(p.t))-vx,dy=Y(p.v)-vy,d=dx*dx+dy*dy;if(d<bd){bd=d;b=[s,p]}}));const g=sv.querySelector("#rvtip");if(!b||!g)return;
+   const[s,p]=b,px=X(rvMs(p.t)),py=Y(p.v),c=s.c,t1=fmt(rvMs(p.t)).replace(":00",":00")+"",t2=`${rvName(s.n)}  ${p.v.toFixed(2)}m`,w=Math.max(t1.length*9,t2.length*10)+16,bx=px>W/2?px-w-8:px+8;
+   g.innerHTML=`<line x1="${px}" x2="${px}" y1="8" y2="${H-P}" stroke="${c}" stroke-dasharray="3 3"/><circle cx="${px}" cy="${py}" r="5" fill="${c}" stroke="#fff" stroke-width="1.5"/><rect x="${bx}" y="12" width="${w}" height="38" rx="6" fill="var(--card)" stroke="var(--ln)"/><text x="${bx+8}" y="28" font-size="12" fill="var(--sub)">${esc(t1)}</text><text x="${bx+8}" y="44" font-size="13" font-weight="bold" fill="${c}">${esc(t2)}</text>`}}
+ const B=(on,attr,lab,extra)=>`<button class="pl ${on?"pri":""}" ${attr} ${extra||""}>${lab}</button>`;
+ const chips=rise_?`<div class="note" style="margin:6px 0">増水中の判定: 1時間で+0.05m以上・3時間で+0.10m以上の上昇(上昇中)、または、水防団待機水位以上か、直近3日間の最低水位より+0.15m以上高い間(減水中・高水位)。いま ${riseT.length?esc(riseT.join("、")):"該当なし"}</div>`
+  :`<div class="row" style="margin:4px 0"><button class="pl" data-rall="1">全部オフ</button><span class="note" style="align-self:center">地域をタップして川を選びます</span></div>`+RGR.map(g=>{const ms=RIV.map((r,i)=>[r,i]).filter(x=>x[0].g===g),n=ms.filter(x=>rvv.sel.includes(x[0].n)).length,op=rvOpen.has(g);return`<div style="border-top:1px solid #0001"><div class="rvgh" data-gr="${g}" style="cursor:pointer;display:flex;align-items:center;gap:6px;padding:8px 0;touch-action:manipulation"><b>${g}</b><span class="note" style="margin-left:auto">${n?"選択 "+n+" / ":""}${ms.length}河川 ${op?"▴":"▾"}</span></div>${op?`<div class="row" style="margin-bottom:6px">${ms.map(([r,i])=>{const k=rvv.sel.indexOf(r.n),on=k>=0,c=COL[(on?k:i)%COL.length];return`<button class="pl" data-rn="${i}" style="border-color:${c};${on?`background:${c};color:#fff`:"opacity:.45;text-decoration:line-through"}">${esc(r.d)}</button>`}).join("")}</div>`:""}</div>`}).join("")+(rvv.sel.length?`<div class="note" style="margin:4px 0">表示中: ${rvv.sel.map((n,k)=>`<span style="white-space:nowrap"><span style="color:${COL[k%COL.length]}">●</span>${esc(rvName(n))}</span>`).join("　")}</div>`:"");
+ el.innerHTML=`<div class="card"><b>流入河川の水位</b>
+  <div class="row" style="margin-top:6px">${B(!rise_,'data-md="sel"',"河川を選ぶ")}${B(rise_,'data-md="rise"',"増水中の河川"+(rise.length?"("+rise.length+")":""))}</div>
+  ${chips}
+  <div class="row">${[["1","1日"],["2","2日"],["7","7日"],["0","すべて"]].map(([v,l])=>B(rvv.rng===v,`data-rg="${v}"`,l)).join("")}</div>
+  ${svg}<p class="note">点線=氾濫注意水位。線や点をなぞると値が出ます。データは30分ごとに更新されます。</p><div class="row"><label>縦軸の最小(m)<input id="rvy0" type="number" step="any" placeholder="自動" value="${esc(rvv.y0)}"></label><label>縦軸の最大(m)<input id="rvy1" type="number" step="any" placeholder="自動" value="${esc(rvv.y1)}"></label><button id="rvya">自動に戻す</button></div></div>`;
+ el.querySelector("#rvy0").onchange=e=>{rvv.y0=e.target.value;rvSave();rvChart()};el.querySelector("#rvy1").onchange=e=>{rvv.y1=e.target.value;rvSave();rvChart()};el.querySelector("#rvya").onclick=()=>{rvv.y0="";rvv.y1="";rvSave();rvChart()};
+ el.querySelectorAll("button[data-md]").forEach(b=>b.onclick=()=>{rvv.mode=b.dataset.md;rvSave();rvChart()});
+ el.querySelectorAll("button[data-rg]").forEach(b=>b.onclick=()=>{rvv.rng=b.dataset.rg;rvSave();rvChart()});
+ el.querySelectorAll(".rvgh").forEach(h=>h.onclick=()=>{const g=h.dataset.gr;if(rvOpen.has(g))rvOpen.delete(g);else rvOpen.add(g);rvChart()});
+ el.querySelectorAll("button[data-rall]").forEach(b=>b.onclick=()=>{rvv.sel=[];rvSave();rvChart()});
+ el.querySelectorAll("button[data-rn]").forEach(b=>b.onclick=()=>{const n=RIV[+b.dataset.rn].n;rvv.sel=rvv.sel.includes(n)?rvv.sel.filter(x=>x!==n):rvv.sel.concat(n);rvSave();rvChart()});
+ {const sv=el.querySelector("svg");if(sv&&tip)["pointerdown","pointermove"].forEach(ev=>sv.addEventListener(ev,e=>tip(e,sv)))}
+}
+function rvCard(){if(rvD===null)return`<div class="card"><b>流入河川の水位</b><p class="note">読み込み中…</p></div>`;
+ const SL=["平常","水防団待機水位を超過","氾濫注意水位を超過","避難判断水位を超過","氾濫危険水位を超過"],CL=["#2a8a5a","#b87a00","#d97a00","#d33","#d33"],sg=v=>v==null?"–":(v>=0.005?"↑+":v<=-0.005?"↓":"→")+Math.abs(v).toFixed(2)+"m";
+  const I=rvInfo(),det=r=>{if(r.none)return`<div style="margin:8px 0"><b>${esc(r.d)}</b> <span class="note">データがまだありません</span></div>`;
+  const th=r.t.length>1,nx=th&&r.st<2?`氾濫注意水位まであと${(r.t[1]-r.L.v).toFixed(2)}m`:"";
+  return`<div style="margin:10px 0;padding-top:8px;border-top:1px solid #0001"><div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap"><b>${esc(r.d)}</b><span style="font-size:20px;font-weight:bold">${r.L.v.toFixed(2)}m</span><span style="color:${CL[r.st]};font-weight:bold">${SL[r.st]}</span></div><div class="note">1時間 ${sg(r.d1)}・3時間 ${sg(r.d3)}・24時間の最高 ${r.mx.toFixed(2)}m<br>${rvState(r)?"【"+rvState(r)+"】3日間の最低から"+(r.up>=0?"+":"")+r.up.toFixed(2)+"m・":""}${nx?nx+"・":""}${th?"注意 "+r.t[1]+"m"+(r.t[3]!=null?" / 危険 "+r.t[3]+"m":""):"基準水位なし"}(${esc(r.L.t.slice(5,16).replace("T"," "))}時点)</div></div>`};
+  const hot=I.filter(r=>!r.none&&(r.st>=1||rvRising(r))),rest=I.filter(r=>!hot.includes(r)),line=r=>r.none?`<div class="note">${esc(r.d)}: データなし</div>`:`<div style="display:flex;gap:8px;padding:2px 0"><span>${esc(r.d)}</span><b style="margin-left:auto">${r.L.v.toFixed(2)}m</b><span class="note" style="min-width:3.2em;text-align:right">${sg(r.d3)}</span></div>`;
+  const lst=RGR.map(g=>{const a=rest.filter(r=>r.g===g);return a.length?`<div class="note" style="margin:8px 0 2px">${g}</div>`+a.map(line).join(""):""}).join("");
+  return`<div class="card"><b>流入河川の水位</b><div class="note">${RIV.length}河川の、河口に近い観測所の水位です(国土交通省 川の防災情報)。${hot.length?"増水・高水位の川を上に出しています。":"いまは平常です。"}</div>${hot.map(det).join("")}${rest.length?`<div style="border-top:1px solid #0001;margin-top:8px;padding:2px 0"><div class="ntg" data-g="rv-all" style="cursor:pointer;display:flex;align-items:center;gap:6px;padding:8px 0;touch-action:manipulation"><b>${hot.length?"そのほかの河川":"全河川"}(${rest.length})</b><span class="note" style="margin-left:auto">水位・3時間の変化 <span class="ar">${ntOpen.has("rv-all")?"▴":"▾"}</span></span></div><div class="note ntl" ${ntOpen.has("rv-all")?"":"hidden"} style="line-height:1.6">${lst}</div></div>`:""}</div>`}
+const NTLK=["大津市","草津市","守山市","野洲市","近江八幡市","東近江市","彦根市","米原市","長浜市","高島市","栗東市","湖南市","甲賀市","日野町","竜王町","愛荘町","豊郷町","甲良町","多賀町"],ntW=w=>/警報/.test(w.name)?2:1;
+function ntAreas(){if(!ntA)return[];let ar=ntA.areas.filter(a=>a.warnings.length);const lk=n=>NTLK.some(x=>n.startsWith(x)),named=ntA.areas.some(a=>lk(a.name));
+ if(named)ar=ar.filter(a=>lk(a.name)||/^(北部|南部)$/.test(a.name));
+ return ar.map(a=>({n:/^(北部|南部)$/.test(a.name)?"滋賀県"+a.name:a.name,w:a.warnings})).sort((a,b)=>Math.max(0,...b.w.map(ntW))-Math.max(0,...a.w.map(ntW)))}
+function ntKeys(){const o=[];ntAreas().forEach(a=>a.w.forEach(w=>o.push({k:"a:"+a.n+":"+w.name,lv:ntW(w)})));if(wxD)ntForecast().forEach(x=>o.push({k:"f:"+x.t,lv:x.lv}));if(rvD)rvInfo().filter(r=>!r.none&&r.st>=2).forEach(r=>o.push({k:"r:"+r.n+":"+RLV[r.st-1],lv:r.st>=3?2:1}));return o}
+function ntSeen(){try{return new Set(JSON.parse(localStorage.getItem("bw_ntseen")||"[]"))}catch(e){return new Set()}}
+function ntMark(){try{localStorage.setItem("bw_ntseen",JSON.stringify(ntKeys().map(x=>x.k)))}catch(e){}}
+function ntBadge(){if(tab==="nt")return"";const S=ntSeen(),u=ntKeys().filter(x=>!S.has(x.k));if(!u.length)return"";const red=u.some(x=>x.lv>1);return`<span style="display:inline-block;min-width:16px;height:16px;line-height:16px;padding:0 4px;margin-left:4px;border-radius:8px;font-size:11px;font-weight:bold;color:#fff;background:${red?"#d33":"#e8a200"}">${u.length}</span>`}
+function notice(){const el=$("#v-nt");
+ if((!ntA&&Date.now()-ntTry>6e4)||Date.now()-ntTry>10*60e3)loadAlerts();if(wxNeed())loadWx();
+ if((rvD===null&&Date.now()-rvTry>6e4)||Date.now()-rvTry>10*60e3)loadRivers();
+ const S=ntSeen(),NEW=k=>S.has(k)?"":' <span style="font-size:11px;color:#fff;background:#d33;border-radius:6px;padding:1px 5px;vertical-align:middle">NEW</span>';
+ let h="";
+ if(ntA){const info=ntAreas();
+  const G={};info.forEach(a=>a.w.forEach(w=>{const g=G[w.name]=G[w.name]||{n:w.name,lv:ntW(w),a:[],nw:false};g.a.push(a.n);if(!S.has("a:"+a.n+":"+w.name))g.nw=true}));
+  const gs=Object.values(G).sort((x,y)=>y.lv-x.lv||y.a.length-x.a.length),col=g=>g.lv>1?"#d33":"#b87a00";
+  const rows=gs.length?`<div style="margin:6px 0;font-weight:bold;color:${gs.some(g=>g.lv>1)?"#d33":"#b87a00"}">${gs.some(g=>g.lv>1)?"🚨 警報":"⚠️ 注意報"}が出ています(${gs.length}種類)</div>`+gs.map(g=>`<div style="border-top:1px solid #0001;padding:6px 0"><div class="ntg" data-g="${esc(g.n)}" style="cursor:pointer;display:flex;align-items:center;gap:6px;padding:8px 0;touch-action:manipulation;-webkit-tap-highlight-color:transparent"><b style="color:${col(g)}">${esc(g.n)}</b>${g.nw?' <span style="font-size:11px;color:#fff;background:#d33;border-radius:6px;padding:1px 5px">NEW</span>':""}<span class="note" style="margin-left:auto">${g.a.length}地域 <span class="ar">${ntOpen.has(g.n)?"▴":"▾"}</span></span></div><div class="note ntl" ${ntOpen.has(g.n)?"":"hidden"} style="margin-top:2px;line-height:1.7">${g.a.map(esc).join("、")}</div></div>`).join(""):"";
+  h+=`<div class="card"><b>気象庁 警報・注意報</b><div class="note">滋賀県内の各市町と北部・南部の分${ntA.reportTime?"(気象庁発表 "+esc(ntA.reportTime.slice(5,16).replace("T"," "))+")":""}</div>${rows||'<p style="margin:8px 0">✅ 現在、警報・注意報は出ていません。</p>'}</div>`}
+ else h+=`<div class="card"><b>気象庁 警報・注意報</b><p class="note">${esc(ntErr||"読み込み中…")}<br>データは30分ごとの自動更新で作られます。初回の更新が終わるまで表示されないことがあります。</p></div>`;
+ h+=rvCard();
+ const items=ntForecast();
+ h+=`<div class="card"><b>天気予報から見た注意</b><div class="note">今後24時間の予報と直近24時間の雨から判定(琵琶湖周辺11地点)</div>`+(wxD?(items.length?items.map(x=>`<div style="margin:8px 0;padding:8px;border-radius:8px;border:1px solid ${x.lv>1?"#d33":"#e8a200"}"><b>${x.ic} ${esc(x.t)}</b>${NEW("f:"+x.t)}<div class="note" style="margin-top:2px">${esc(x.d)}</div></div>`).join(""):'<p style="margin:8px 0">✅ 目立った雨・風・雷の予報はありません。</p>'):`<p class="note">${esc(wxErr||"天気を読み込み中…")}</p>`)+`<p class="note">雨は1時間と24時間の合計、風は突風の最大値で判定した目安です。実際の判断は気象庁の最新情報を確認してください。</p></div>`;
+ if(el.innerHTML!==h){el.innerHTML=h;
+ el.querySelectorAll(".ntg").forEach(hd=>hd.onclick=()=>{const n=hd.dataset.g,l=hd.nextElementSibling,op=l.hidden;l.hidden=!op;if(op)ntOpen.add(n);else ntOpen.delete(n);hd.querySelector(".ar").textContent=op?"▴":"▾"})}
+ if(ntA&&wxD&&rvD!==null){const k=ntKeys().map(x=>x.k).join("|");if(k!==ntLastK){ntLastK=k;ntMark();renderTabs()}}}
+function nowStr(){const d=new Date();return`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:00`}
+function rec(){
+ const rows=man.map((r,i)=>({r,i})).sort((a,b)=>b.r.time.localeCompare(a.r.time)).slice(0,30).map(({r,i})=>`<tr><td>${r.time.replace("T"," ")}</td><td>${esc(r.place)}</td><td class="n">${r.level??""}</td><td class="n">${r.flow??""}</td><td class="n">${r.temp??""}</td><td>${r.flow!=null?(r.end||"次の入力まで"):""}</td><td><button data-i="${i}">削除</button></td></tr>`).join("");
+ $("#v-rec").innerHTML=`<div class="card"><p class="note">自動で取れない値(放流量など)を手で入れます。この端末のブラウザにだけ保存されます。<br>放流量は、終了日を入れるとその日まで、空欄なら次に入力するまで、同じ値が続くものとして扱います。</p>
+ <div class="row"><label>日時<input id="t" type="datetime-local" value="${nowStr()}"></label><label>地点<input id="p" value="瀬田川洗堰"></label></div>
+ <div class="row"><label>水位(m)<input id="l" type="number" step="any"></label><label>放流量(m³/s)<input id="f" type="number" step="any"></label><label>水温(℃)<input id="w" type="number" step="any"></label><label>放流量の終了日(任意)<input id="e" type="date"></label></div>
+ <button class="pri" id="add">追加</button></div>
+ <div class="card scroll"><table><tr><th>日時</th><th>地点</th><th>水位</th><th>放流量</th><th>水温</th><th>放流量の期間</th><th></th></tr>${rows||'<tr><td colspan="7">まだ記録がありません</td></tr>'}</table></div>
+ <div class="card"><b>バックアップ</b><p class="note">手入力の記録を、文字として書き出し・読み込みできます。書き出した文字は、メモアプリなどに保存してください。</p>
+ <div class="row"><button id="bx">書き出す</button><button id="bi">読み込む</button></div>
+ <textarea id="bt" rows="6"></textarea>
+ <div class="row"><button id="bc" hidden>コピー</button><button id="bo" class="pri" hidden>取り込む</button></div></div>`;
+ $("#add").onclick=()=>{const v=id=>num($(id).value),o={time:$("#t").value,place:$("#p").value||"未設定",level:v("#l"),flow:v("#f"),temp:v("#w"),end:$("#e").value||""};
+  if(!o.time||(o.level==null&&o.flow==null&&o.temp==null))return;if(o.flow==null)o.end="";man.push(o);saveMan();rec()};
+ $("#v-rec").querySelectorAll("button[data-i]").forEach(b=>b.onclick=()=>{man.splice(+b.dataset.i,1);saveMan();rec()});
+ const bt=$("#bt");
+ $("#bx").onclick=()=>{bt.value="time,place,level,flow,temp,end\n"+man.map(r=>[r.time,r.place,r.level??"",r.flow??"",r.temp??"",r.end||""].join(",")).join("\n");$("#bc").hidden=false;$("#bo").hidden=true;bt.select()};
+ $("#bi").onclick=()=>{bt.value="";bt.placeholder="ここに書き出した文字を貼って、「取り込む」を押してください";$("#bo").hidden=false;$("#bc").hidden=true;bt.focus()};
+ $("#bc").onclick=async()=>{try{await navigator.clipboard.writeText(bt.value);alert("コピーしました")}catch(e){bt.select();alert("文字を選択しました。コピーしてください")}};
+ $("#bo").onclick=()=>{let add=0;const have=new Set(man.map(x=>[x.time,x.place,x.level,x.flow,x.temp,x.end||""].join("|")));
+  bt.value.split(/\r?\n/).forEach(l=>{const c=l.split(",");if(c.length<5||c[0]==="time")return;
+   const o={time:c[0].trim().replace(" ","T").slice(0,16),place:c[1].trim()||"未設定",level:num(c[2]),flow:num(c[3]),temp:num(c[4]),end:/^\d{4}-\d\d-\d\d$/.test((c[5]||"").trim())?c[5].trim():""};
+   if(!/^\d{4}-\d\d-\d\dT\d\d:\d\d$/.test(o.time)||(o.level==null&&o.flow==null&&o.temp==null))return;
+   const k=[o.time,o.place,o.level,o.flow,o.temp,o.end].join("|");if(have.has(k))return;have.add(k);man.push(o);add++});
+  saveMan();alert(add+" 件を取り込みました");rec()};
+}
+show();loadCsv().then(show);loadHistDaily();loadAlerts();if(wxNeed())loadWx();
+if(/[?&]dbg=1/.test(location.search)){let lt=Date.now(),mx=0,pd=0;setInterval(()=>{const n=Date.now(),d=n-lt-100;if(d>mx)mx=d;lt=n},100);const bx=document.createElement("div");bx.style.cssText="position:fixed;left:0;right:0;top:0;z-index:99999;background:#000c;color:#0f0;font:12px monospace;padding:4px;white-space:pre-wrap";bx.textContent="dbg on";document.body.appendChild(bx);document.addEventListener("pointerdown",()=>{pd=performance.now();mx=0},true);document.addEventListener("click",e=>{const t0=performance.now(),lag=Math.round(t0-pd);requestAnimationFrame(()=>{const t1=performance.now();bx.textContent="押す→click "+lag+"ms / click→描画 "+Math.round(t1-t0)+"ms / 直近の固まり最大 "+Math.max(0,Math.round(mx))+"ms / tab="+tab})},true)}
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState!=="visible")return;if(Date.now()-ntTry>10*60e3)loadAlerts();if(Date.now()-rvTry>10*60e3)loadRivers();if(Date.now()-wxAt>15*60e3&&!wxBusy)loadWx()});
+</script>
+<script>
+(()=>{const GC="";if(!GC)return;const s=document.createElement("script");s.async=true;s.src="https://gc.zgo.at/count.js";s.setAttribute("data-goatcounter","https://"+GC+".goatcounter.com/count");s.setAttribute("data-goatcounter-settings",'{"no_onload":false}');document.head.appendChild(s)})();
+</script>
+</body>
+</html>
