@@ -419,7 +419,7 @@ const f1=v=>v==null?"–":(+v).toFixed(1);
 function dayAvg(rs,m,day,pl){const q=rs.filter(r=>r[m]!=null&&r.time.startsWith(day)&&(!pl||r.place===pl));return q.length?q.reduce((t,r)=>t+r[m],0)/q.length:null}
 
 /* ===== Google ドライブ写真 ===== */
-const GCID="46474470668-cgumoi91o5b7vvac0uv990haqihoq3id.apps.googleusercontent.com",PHMAX=8;
+const GCID="80472232170-mqadohng7sc1bdef63fc0cbnpl5u7k23.apps.googleusercontent.com",PHMAX=8;
 let gtok=null,gexp=0,gtc=null,thumbs={};
 try{const x=JSON.parse(localStorage.getItem("bw_gtok")||"null");if(x&&x.exp>Date.now()){gtok=x.t;gexp=x.exp}}catch(e){}
 try{thumbs=JSON.parse(localStorage.getItem("bw_thumbs")||"{}")||{}}catch(e){thumbs={}}
